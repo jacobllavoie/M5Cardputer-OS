@@ -3,6 +3,8 @@
 
 #include <M5Cardputer.h>
 
+void initializeMenus();
+
 void drawScreen();
 void drawMainMenu();
 void drawAppsMenu();

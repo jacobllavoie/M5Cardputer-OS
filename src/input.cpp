@@ -248,10 +248,34 @@ void handleSettingsMenuInput() {
 
 void handleDisplaySettingsInput() {
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+    bool sizeChanged = false;
+
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentDisplaySelection = (currentDisplaySelection - 1 + numDisplayMenuItems) % numDisplayMenuItems; }
     if (M5Cardputer.Keyboard.isKeyPressed('.')) { currentDisplaySelection = (currentDisplaySelection + 1) % numDisplayMenuItems; }
-    if (strcmp(displayMenuItems[currentDisplaySelection], "Text Size") == 0) { if (M5Cardputer.Keyboard.isKeyPressed('a')) { menuTextSize = max(0.5f, menuTextSize - 0.1f); } if (M5Cardputer.Keyboard.isKeyPressed('d')) { menuTextSize = min(2.0f, menuTextSize + 0.1f); } }
-    if (status.enter) { if (strcmp(displayMenuItems[currentDisplaySelection], "Back") == 0) { currentState = STATE_SETTINGS_MENU; } }
+    
+    if (strcmp(displayMenuItems[currentDisplaySelection], "Text Size") == 0) { 
+        if (M5Cardputer.Keyboard.isKeyPressed('a')) { 
+            menuTextSize = max(0.5f, menuTextSize - 0.1f); 
+            sizeChanged = true;
+        } 
+        if (M5Cardputer.Keyboard.isKeyPressed('d')) { 
+            menuTextSize = min(2.0f, menuTextSize + 0.1f); 
+            sizeChanged = true;
+        } 
+    }
+    
+    if (status.enter) { 
+        if (strcmp(displayMenuItems[currentDisplaySelection], "Back") == 0) { 
+            currentState = STATE_SETTINGS_MENU; 
+        } 
+    }
+
+    if (sizeChanged) {
+        preferences.begin("display-settings", false);
+        preferences.putFloat("fontSize", menuTextSize);
+        preferences.end();
+    }
+
     drawScreen();
 }
 

@@ -82,8 +82,8 @@ extern int currentMainMenuSelection;
 extern std::vector<String> app_list;
 extern int currentAppSelection;
 
-extern const char* settingsMenuItems[];
-extern const int numSettingsMenuItems;
+extern std::vector<const char*> settingsMenuItems;
+extern int numSettingsMenuItems;
 extern int currentSettingsSelection;
 
 extern const char* displayMenuItems[];

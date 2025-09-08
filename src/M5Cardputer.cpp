@@ -28,6 +28,11 @@ void setup() {
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setRotation(1);
 
+    initializeMenus();
+
+    preferences.begin("display-settings", true);
+    menuTextSize = preferences.getFloat("fontSize", 0.8f);
+    preferences.end();
     #ifdef ENABLE_SD_CARD
     displayMessage("Mounting SD Card...", "", 1000);
     mountSD();

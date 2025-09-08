@@ -21,15 +21,13 @@ const char* mainMenuItems[] = { "Apps", "Keyboard Test", "Option C", "Settings" 
 const int numMainMenuItems = sizeof(mainMenuItems) / sizeof(mainMenuItems[0]);
 int currentMainMenuSelection = 0;
 
-// Conditionally build the settings menu items
-#if defined(ENABLE_WIFI) && defined(ENABLE_SD_CARD) && defined(ENABLE_OTA)
-const char* settingsMenuItems[] = { "Display", "SD Card", "WiFi", "OTA Update", "Factory Reset", "Back" };
-#else
-const char* settingsMenuItems[] = { "Display", "Factory Reset", "Back" }; // Minimal version
-#endif
-
-const int numSettingsMenuItems = sizeof(settingsMenuItems) / sizeof(settingsMenuItems[0]);
+// --- CORRECTED MENU DEFINITION ---
+// We now use a vector that we will build dynamically.
+std::vector<const char*> settingsMenuItems;
+int numSettingsMenuItems = 0;
 int currentSettingsSelection = 0;
+// --- END OF CORRECTION ---
+
 const char* displayMenuItems[] = { "Text Size", "Back" };
 const int numDisplayMenuItems = sizeof(displayMenuItems) / sizeof(displayMenuItems[0]);
 int currentDisplaySelection = 0;
@@ -46,6 +44,28 @@ int currentWifiSelection = 0;
 std::vector<String> app_list;
 int currentAppSelection = 0;
 
+
+// --- NEW FUNCTION TO BUILD MENUS ---
+void initializeMenus() {
+    settingsMenuItems.clear(); // Clear any previous items
+    settingsMenuItems.push_back("Display");
+    #ifdef ENABLE_SD_CARD
+    settingsMenuItems.push_back("SD Card");
+    #endif
+    #ifdef ENABLE_WIFI
+    settingsMenuItems.push_back("WiFi");
+    #endif
+    #ifdef ENABLE_OTA
+    settingsMenuItems.push_back("OTA Update");
+    #endif
+    settingsMenuItems.push_back("Factory Reset");
+    settingsMenuItems.push_back("Back");
+
+    numSettingsMenuItems = settingsMenuItems.size();
+}
+// --- END OF NEW FUNCTION ---
+
+// The rest of the file remains the same...
 void drawScreen() {
     if (currentState == STATE_MAIN_MENU) drawMainMenu();
     else if (currentState == STATE_APPS_MENU) drawAppsMenu();
