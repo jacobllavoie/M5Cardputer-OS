@@ -20,11 +20,17 @@
 #include "esp_ota_ops.h"
 #endif
 
+#ifdef ENABLE_SETTINGS_PERSISTENCE
+#include <Preferences.h>
+#endif
+
 // --- Objects ---
 #ifdef ENABLE_SD_CARD
 extern SdFs sd;
 #endif
+#ifdef ENABLE_SETTINGS_PERSISTENCE
 extern Preferences preferences;
+#endif
 
 // --- UI Configuration ---
 extern float menuTextSize;

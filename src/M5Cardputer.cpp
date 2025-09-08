@@ -30,9 +30,17 @@ void setup() {
 
     initializeMenus();
 
-    preferences.begin("display-settings", true);
-    menuTextSize = preferences.getFloat("fontSize", 0.8f);
-    preferences.end();
+    #ifdef ENABLE_SETTINGS_PERSISTENCE
+    // Open preferences and check if it was successful
+    if (preferences.begin("disp-settings", true)) {
+        menuTextSize = preferences.getFloat("fontSize", 0.8f);
+        preferences.end();
+        displayMessage("Loaded Font Size:", String(menuTextSize, 2), 1500);
+    } else {
+        displayMessage("Error:", "Failed to load settings!", 2000);
+    }
+    #endif
+
     #ifdef ENABLE_SD_CARD
     displayMessage("Mounting SD Card...", "", 1000);
     mountSD();

@@ -23,6 +23,11 @@ void factoryReset() {
     preferences.clear();
     preferences.end();
     #endif
+    #ifdef ENABLE_SETTINGS_PERSISTENCE
+    preferences.begin("disp-settings", false);
+    preferences.clear();
+    preferences.end();
+    #endif
     displayMessage("Reset Complete.", "Rebooting...", 2000);
     ESP.restart();
 }
@@ -270,11 +275,16 @@ void handleDisplaySettingsInput() {
         } 
     }
 
+    #ifdef ENABLE_SETTINGS_PERSISTENCE
     if (sizeChanged) {
-        preferences.begin("display-settings", false);
-        preferences.putFloat("fontSize", menuTextSize);
-        preferences.end();
+        if (preferences.begin("disp-settings", false)) {
+            preferences.putFloat("fontSize", menuTextSize);
+            preferences.end();
+        } else {
+            displayMessage("Error:", "Failed to save settings!", 1000);
+        }
     }
+    #endif
 
     drawScreen();
 }

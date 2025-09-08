@@ -4,7 +4,9 @@
 #ifdef ENABLE_SD_CARD
 SdFs sd;
 #endif
+#ifdef ENABLE_SETTINGS_PERSISTENCE
 Preferences preferences;
+#endif
 float menuTextSize = 0.8;
 AppState currentState = STATE_MAIN_MENU;
 #ifdef ENABLE_SD_CARD
