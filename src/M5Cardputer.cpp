@@ -1,4 +1,5 @@
 #include "globals.h"
+#include <esp_system.h>
 #include "ui.h"
 #include "input.h"
 
@@ -19,10 +20,22 @@
 // Timer for battery status refresh
 unsigned long last_battery_update = 0;
 const int battery_update_interval = 2000;
-
 void setup() {
-#include "M5Cardputer.h"
-#include "globals.h"
+    // Check for hardware reset and load launcher if detected
+    esp_reset_reason_t reason = esp_reset_reason();
+    if (reason == ESP_RST_EXT || reason == ESP_RST_POWERON) {
+        #if defined(ENABLE_SD_CARD) && defined(ENABLE_OTA)
+        // Attempt to load /apps/firmware.bin
+        File launcherFile = SD.open("/apps/firmware.bin");
+        if (launcherFile) {
+            launcherFile.close();
+            extern void loadApp(String appName);
+            loadApp("firmware.bin");
+            drawScreen();
+            return;
+        }
+        #endif
+    }
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
     M5Cardputer.Display.setTextSize(1);
@@ -84,12 +97,12 @@ void setup() {
         } else {
             wifiStatus = "error";
         }
-    drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
-    delay(900);
+        drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+        delay(900);
     }
     else {
-    drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
-    delay(600);
+        drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+        delay(600);
     }
     #endif
 
@@ -115,9 +128,9 @@ void loop() {
     #ifdef ENABLE_WEB_SERVER
     if (currentState == STATE_WEB_SERVER_ACTIVE) {
         handleWebServerClient();
-    } 
+    }
     #endif
-    
+
     #ifdef ENABLE_OTA
     if (currentState == STATE_OTA_MODE) {
         handleOTA();
