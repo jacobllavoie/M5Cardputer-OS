@@ -3,13 +3,24 @@
 #include "ui.h"
 #include "ota.h"
 
+#include <Preferences.h>
+
+void saveWifiCredentials(const String& ssid, const String& password) {
+    Preferences prefs;
+    prefs.begin("wifi", false); // read/write
+    prefs.putString("ssid", ssid);
+    prefs.putString("pass", password);
+    prefs.end();
+}
+
 void wifiAutoConnect(bool returnToWifiMenu = false) {
     debugMessage("DEBUG:", "wifiAutoConnect() called");
     // displayMessage("Checking WiFi...", "", 500);
-    preferences.begin("wifi-creds", true);
-    String ssid = preferences.getString("ssid", "");
-    String password = preferences.getString("password", "");
-    preferences.end();
+    Preferences prefs;
+    prefs.begin("wifi", true); // read-only
+    String ssid = prefs.getString("ssid", "");
+    String password = prefs.getString("pass", "");
+    prefs.end();
 
     if (ssid.length() > 0) {
     // displayMessage("Connecting to:", ssid, 1000);
@@ -41,7 +52,7 @@ void wifiAutoConnect(bool returnToWifiMenu = false) {
 void showWifiStatus() {
     debugMessage("DEBUG:", "showWifiStatus() called");
     if (WiFi.status() == WL_CONNECTED) {
-    // displayMessage("Connected to: " + WiFi.SSID(), "IP: " + WiFi.localIP().toString());
+    displayMessage("Connected to: " + WiFi.SSID(), "IP: " + WiFi.localIP().toString());
     } else {
         displayMessage("WiFi Disconnected");
     }

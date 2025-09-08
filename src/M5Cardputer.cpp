@@ -21,21 +21,7 @@
 unsigned long last_battery_update = 0;
 const int battery_update_interval = 2000;
 void setup() {
-    // Check for hardware reset and load launcher if detected
-    esp_reset_reason_t reason = esp_reset_reason();
-    if (reason == ESP_RST_EXT || reason == ESP_RST_POWERON) {
-        #if defined(ENABLE_SD_CARD) && defined(ENABLE_OTA)
-        // Attempt to load /apps/firmware.bin
-        File launcherFile = SD.open("/apps/firmware.bin");
-        if (launcherFile) {
-            launcherFile.close();
-            extern void loadApp(String appName);
-            loadApp("firmware.bin");
-            drawScreen();
-            return;
-        }
-        #endif
-    }
+    // ...existing code...
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
     M5Cardputer.Display.setTextSize(1);
@@ -84,7 +70,7 @@ void setup() {
 
     // Update WiFi status only in boot list
     #ifdef ENABLE_WIFI
-    preferences.begin("wifi-creds", true);
+    preferences.begin("wifi", true);
     String ssid = preferences.getString("ssid", "");
     preferences.end();
     if (ssid.length() > 0) {

@@ -7,5 +7,7 @@ void showWifiStatus();
 void scanWifiNetworks();
 void disconnectWifi();
 
+void saveWifiCredentials(const String& ssid, const String& password);
+
 #endif
 #endif

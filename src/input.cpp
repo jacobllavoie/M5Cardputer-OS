@@ -15,6 +15,9 @@
 #ifdef ENABLE_OTA
 #include "ota.h"
 #endif
+#ifdef ENABLE_USB_MSC
+#include "usb_msc.h"
+#endif
 
 void factoryReset() {
     debugMessage("DEBUG:", "factoryReset() called");
@@ -126,6 +129,17 @@ void handleInput() {
              Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
              if (status.enter) {
                  stopOTA();
+                 currentState = STATE_SETTINGS_MENU;
+                 drawScreen();
+             }
+             stateHandled = true;
+        }
+        #endif
+        #ifdef ENABLE_USB_MSC
+        if (currentState == STATE_USB_MSC_ACTIVE) {
+             Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+             if (status.enter) {
+                 stopMSC();
                  currentState = STATE_SETTINGS_MENU;
                  drawScreen();
              }
@@ -255,6 +269,12 @@ void handleSettingsMenuInput() {
             #endif
         }
         #endif
+        #ifdef ENABLE_USB_MSC
+        else if (strcmp(selected, "USB MSC") == 0) {
+            currentState = STATE_USB_MSC_ACTIVE;
+            startMSC();
+        }
+        #endif
         else if (strcmp(selected, "Factory Reset") == 0) currentState = STATE_FACTORY_RESET_CONFIRM; 
         else if (strcmp(selected, "Back") == 0) currentState = STATE_MAIN_MENU; 
     }
@@ -381,10 +401,7 @@ void handlePasswordInput() {
         if (status.del && password_buffer.length() > 0) { password_buffer.remove(password_buffer.length() - 1); }
         if (status.enter) {
             displayMessage("Saving & Connecting...", "", 1500);
-            preferences.begin("wifi-creds", false);
-            preferences.putString("ssid", selected_ssid);
-            preferences.putString("password", password_buffer);
-            preferences.end();
+            saveWifiCredentials(selected_ssid, password_buffer);
             currentState = STATE_WIFI_SETTINGS_MENU;
             wifiAutoConnect(true);
             return;

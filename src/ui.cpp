@@ -1,5 +1,9 @@
 #include <vector>
 #include "globals.h"
+#ifdef ENABLE_USB_MSC
+#include "usb_msc.h"
+void drawUsbMscScreen();
+#endif
 #define COLOR_BLUE 0x001F
 #define COLOR_RED 0xF800
 #define COLOR_GREEN 0x07E0
@@ -120,6 +124,9 @@ void initializeMenus() {
     #ifdef ENABLE_OTA
     settingsMenuItems.push_back("OTA Update");
     #endif
+    #ifdef ENABLE_USB_MSC
+    settingsMenuItems.push_back("USB MSC");
+    #endif
     settingsMenuItems.push_back("Factory Reset");
     settingsMenuItems.push_back("Back");
 
@@ -150,7 +157,26 @@ void drawScreen() {
     #ifdef ENABLE_OTA
     else if (currentState == STATE_OTA_MODE) drawOtaScreen();
     #endif
+    #ifdef ENABLE_USB_MSC
+    else if (currentState == STATE_USB_MSC_ACTIVE) drawUsbMscScreen();
+    #endif
 }
+
+#ifdef ENABLE_USB_MSC
+void drawUsbMscScreen() {
+    #ifdef DEBUG_MODE
+    debugMessage("DEBUG:", "drawUsbMscScreen() called");
+    #endif
+    M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
+    M5Cardputer.Display.setTextDatum(top_center);
+    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setTextSize(menuTextSize);
+    M5Cardputer.Display.setTextColor(TEXT_COLOR);
+    M5Cardputer.Display.drawString("USB MSC Active", M5Cardputer.Display.width() / 2, 20);
+    M5Cardputer.Display.drawString("Connect to PC", M5Cardputer.Display.width() / 2, 50);
+    M5Cardputer.Display.drawString("Press Enter to Stop", M5Cardputer.Display.width() / 2, 90);
+}
+#endif
 
 void drawBatteryStatus() {
     int percentage = M5.Power.getBatteryLevel();
