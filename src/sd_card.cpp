@@ -9,7 +9,8 @@
 
 void mountSD() {
     if (!isSdCardMounted) {
-        if (!sd.begin(SD_SPI_CS_PIN, SD_SCK_MHZ(25))) {
+        // Updated sd.begin() call with frequency in Hz
+        if (!SD.begin(SD_SPI_CS_PIN, SPI, 25000000)) {
             displayMessage("SD Card Mount Failed!");
             isSdCardMounted = false;
         } else {
@@ -23,7 +24,8 @@ void mountSD() {
 
 void unmountSD() {
     if (isSdCardMounted) {
-        sd.end();
+        // SD.end() doesn't exist in the standard library for ESP32,
+        // so we just update the flag.
         isSdCardMounted = false;
         displayMessage("SD Card Unmounted");
     } else {
@@ -33,8 +35,17 @@ void unmountSD() {
 
 void showSDCardInfo() {
     if (isSdCardMounted) {
-        uint32_t cardSizeMB = sd.card()->sectorCount() * 512E-6;
-        displayMessage("Type: SDHC/SDXC", "Size: " + String(cardSizeMB) + "MB");
+        // Updated function calls for card size and type
+        uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+        String cardType = "";
+        switch(SD.cardType()){
+            case CARD_MMC: cardType = "MMC"; break;
+            case CARD_SD: cardType = "SDSC"; break;
+            case CARD_SDHC: cardType = "SDHC"; break;
+            case CARD_UNKNOWN:
+            default: cardType = "Unknown"; break;
+        }
+        displayMessage("Type: " + cardType, "Size: " + String(cardSize) + "MB");
     } else {
         displayMessage("SD Card Not Mounted");
     }

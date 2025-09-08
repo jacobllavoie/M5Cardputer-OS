@@ -8,7 +8,7 @@
 
 // --- Conditional Includes based on platformio.ini ---
 #ifdef ENABLE_SD_CARD
-#include "SdFat.h"
+#include <SD.h>
 #endif
 
 #ifdef ENABLE_WIFI
@@ -26,7 +26,7 @@
 
 // --- Objects ---
 #ifdef ENABLE_SD_CARD
-extern SdFs sd;
+extern fs::SDFS sd;
 #endif
 #ifdef ENABLE_SETTINGS_PERSISTENCE
 extern Preferences preferences;

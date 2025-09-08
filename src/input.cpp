@@ -32,7 +32,7 @@ void factoryReset() {
     ESP.restart();
 }
 
-#ifdef ENABLE_SD_CARD
+#if defined(ENABLE_SD_CARD) && defined(ENABLE_OTA)
 void loadApp(String appName) {
     String appPath = "/apps/" + appName;
     if (!sd.exists(appPath.c_str())) {
@@ -202,7 +202,7 @@ void handleAppsMenuInput() {
             currentAppSelection = (currentAppSelection + 1) % app_list.size();
     }
     if (status.enter) {
-        #ifdef ENABLE_SD_CARD
+        #if defined(ENABLE_SD_CARD) && defined(ENABLE_OTA)
         if (!app_list.empty()) {
             loadApp(app_list[currentAppSelection]);
         } else {

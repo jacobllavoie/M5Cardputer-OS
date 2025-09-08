@@ -2,7 +2,7 @@
 #include "ui.h"
 
 #ifdef ENABLE_SD_CARD
-SdFs sd;
+fs::SDFS sd;
 #endif
 #ifdef ENABLE_SETTINGS_PERSISTENCE
 Preferences preferences;
