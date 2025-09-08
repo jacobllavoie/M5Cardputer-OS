@@ -35,12 +35,12 @@ void factoryReset() {
 #if defined(ENABLE_SD_CARD) && defined(ENABLE_OTA)
 void loadApp(String appName) {
     String appPath = "/apps/" + appName;
-    if (!sd.exists(appPath.c_str())) {
+    if (!SD.exists(appPath.c_str())) {
         displayMessage("Error:", "App file not found!");
         return;
     }
 
-    FsFile appFile = sd.open(appPath.c_str(), O_RDONLY);
+    File appFile = SD.open(appPath.c_str());
     if (!appFile) {
         displayMessage("Error:", "Failed to open app!");
         return;
@@ -158,14 +158,13 @@ void handleMainMenuInput() {
         if (strcmp(mainMenuItems[currentMainMenuSelection], "Apps") == 0) {
             #ifdef ENABLE_SD_CARD
             app_list.clear();
-            FsFile root = sd.open("/apps");
+            File root = SD.open("/apps");
             if (root && root.isDirectory()) {
-                FsFile file = root.openNextFile();
-                char fileName[256];
+                File file = root.openNextFile();
                 while(file) {
-                    file.getName(fileName, sizeof(fileName));
-                    if (String(fileName).endsWith(".bin")) {
-                        app_list.push_back(fileName);
+                    // Use file.name() to get the filename
+                    if (String(file.name()).endsWith(".bin")) {
+                        app_list.push_back(file.name());
                     }
                     file.close();
                     file = root.openNextFile();

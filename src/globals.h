@@ -25,9 +25,6 @@
 #endif
 
 // --- Objects ---
-#ifdef ENABLE_SD_CARD
-extern fs::SDFS sd;
-#endif
 #ifdef ENABLE_SETTINGS_PERSISTENCE
 extern Preferences preferences;
 #endif

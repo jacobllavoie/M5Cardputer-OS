@@ -23,7 +23,7 @@ const int battery_update_interval = 2000;
 
 void setup() {
     auto cfg = M5.config();
-    M5Cardputer.begin(cfg, true); 
+    M5Cardputer.begin(cfg, true);
     Serial.begin(115200);
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setRotation(1);
@@ -42,7 +42,6 @@ void setup() {
     #endif
 
     #ifdef ENABLE_SD_CARD
-    displayMessage("Mounting SD Card...", "", 1000);
     mountSD();
     #endif
     
