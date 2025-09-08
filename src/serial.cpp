@@ -14,6 +14,9 @@
 String serial_buffer = "";
 
 void handleSerial() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: handleSerial() called");
+    #endif
     while (Serial.available() > 0) {
         char incomingChar = Serial.read();
         if (incomingChar == '\n' || incomingChar == '\r') {
@@ -28,6 +31,9 @@ void handleSerial() {
 }
 
 void processSerialCommand(String command) {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: processSerialCommand() called with command: " + command);
+    #endif
     command.trim();
     Serial.println("# Processing: " + command);
 

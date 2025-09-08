@@ -4,6 +4,9 @@
 #include "ota.h"
 
 void wifiAutoConnect() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: wifiAutoConnect() called");
+    #endif
     displayMessage("Checking WiFi...", "", 500);
     preferences.begin("wifi-creds", true);
     String ssid = preferences.getString("ssid", "");
@@ -30,6 +33,9 @@ void wifiAutoConnect() {
 }
 
 void showWifiStatus() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: showWifiStatus() called");
+    #endif
     if (WiFi.status() == WL_CONNECTED) {
         displayMessage("Connected to: " + WiFi.SSID(), "IP: " + WiFi.localIP().toString());
     } else {
@@ -38,6 +44,9 @@ void showWifiStatus() {
 }
 
 void scanWifiNetworks() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: scanWifiNetworks() called");
+    #endif
     displayMessage("Scanning...", "", 100);
     Serial.println("Scanning for WiFi networks...");
     int n = WiFi.scanNetworks();
@@ -62,6 +71,9 @@ void scanWifiNetworks() {
 }
 
 void disconnectWifi() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: disconnectWifi() called");
+    #endif
     displayMessage("Disconnecting...", "", 1000);
     WiFi.disconnect(true);
     preferences.begin("wifi-creds", false);

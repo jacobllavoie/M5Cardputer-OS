@@ -6,6 +6,9 @@
 #include <ArduinoOTA.h>
 
 void setupOTA() {
+  #ifdef DEBUG_MODE
+  Serial.println("DEBUG: setupOTA() called");
+  #endif
   // Set a hostname for the device
   ArduinoOTA.setHostname("M5Cardputer-OS");
 
@@ -47,10 +50,16 @@ void setupOTA() {
 }
 
 void stopOTA() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: stopOTA() called");
+    #endif
     Serial.println("OTA Stopped.");
 }
 
 void handleOTA() {
+  #ifdef DEBUG_MODE
+  Serial.println("DEBUG: handleOTA() called");
+  #endif
   ArduinoOTA.handle();
 }
 #endif

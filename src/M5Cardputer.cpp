@@ -22,6 +22,9 @@ unsigned long last_battery_update = 0;
 const int battery_update_interval = 2000;
 
 void setup() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: setup() called");
+    #endif
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
     Serial.begin(115200);
@@ -53,6 +56,9 @@ void setup() {
 }
 
 void loop() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: loop() called");
+    #endif
     M5Cardputer.update();
 
     #ifdef ENABLE_WEB_SERVER

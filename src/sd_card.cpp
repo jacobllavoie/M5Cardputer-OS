@@ -8,6 +8,9 @@
 #define SD_SPI_CS_PIN   12
 
 void mountSD() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: mountSD() called");
+    #endif
     if (!isSdCardMounted) {
         SPI.begin(SD_SPI_SCK_PIN, SD_SPI_MISO_PIN, SD_SPI_MOSI_PIN);
 
@@ -24,6 +27,9 @@ void mountSD() {
 }
 
 void unmountSD() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: unmountSD() called");
+    #endif
     if (isSdCardMounted) {
         isSdCardMounted = false;
         displayMessage("SD Card Unmounted");
@@ -33,6 +39,9 @@ void unmountSD() {
 }
 
 void showSDCardInfo() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: showSDCardInfo() called");
+    #endif
     if (isSdCardMounted) {
         uint64_t cardSize = SD.cardSize() / (1024 * 1024);
         String cardType = "";

@@ -46,6 +46,9 @@ int currentAppSelection = 0;
 
 // --- NEW FUNCTION TO BUILD MENUS ---
 void initializeMenus() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: initializeMenus() called");
+    #endif
     settingsMenuItems.clear(); // Clear any previous items
     settingsMenuItems.push_back("Display");
     #ifdef ENABLE_SD_CARD
@@ -66,6 +69,9 @@ void initializeMenus() {
 
 // The rest of the file remains the same...
 void drawScreen() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawScreen() called");
+    #endif
     if (currentState == STATE_MAIN_MENU) drawMainMenu();
     else if (currentState == STATE_APPS_MENU) drawAppsMenu();
     else if (currentState == STATE_SETTINGS_MENU) drawSettingsMenu();
@@ -89,6 +95,9 @@ void drawScreen() {
 }
 
 void drawBatteryStatus() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawBatteryStatus() called");
+    #endif
     int percentage = M5.Power.getBatteryLevel();
     float voltage = M5.Power.getBatteryVoltage() / 1000.0;
     String status = String(percentage) + "% " + String(voltage, 2) + "V";
@@ -100,6 +109,9 @@ void drawBatteryStatus() {
 }
 
 void drawMainMenu() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawMainMenu() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     drawBatteryStatus(); 
     
@@ -116,6 +128,9 @@ void drawMainMenu() {
 }
 
 void drawAppsMenu() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawAppsMenu() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(middle_left);
     M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
@@ -136,17 +151,26 @@ void drawAppsMenu() {
 }
 
 void drawSettingsMenu() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawSettingsMenu() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(middle_left); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
     for (int i = 0; i < numSettingsMenuItems; i++) { if (i == currentSettingsSelection) M5Cardputer.Display.setTextColor(HIGHLIGHT_TEXT_COLOR, HIGHLIGHT_COLOR); else M5Cardputer.Display.setTextColor(TEXT_COLOR); M5Cardputer.Display.drawString(settingsMenuItems[i], 20, 30 + i * 30); }
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
 }
 void drawDisplaySettingsMenu() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawDisplaySettingsMenu() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(middle_left); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
     for (int i = 0; i < numDisplayMenuItems; i++) { if (i == currentDisplaySelection) M5Cardputer.Display.setTextColor(HIGHLIGHT_TEXT_COLOR, HIGHLIGHT_COLOR); else M5Cardputer.Display.setTextColor(TEXT_COLOR); String itemText = displayMenuItems[i]; if (itemText == "Text Size") { itemText = String("Text Size: < ") + String(menuTextSize, 1) + String(" >"); } M5Cardputer.Display.drawString(itemText, 20, 30 + i * 30); }
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
 }
 #ifdef ENABLE_SD_CARD
 void drawSdCardMenu() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawSdCardMenu() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(middle_left); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
     for (int i = 0; i < numSdCardMenuItems; i++) { if (i == currentSdCardSelection) M5Cardputer.Display.setTextColor(HIGHLIGHT_TEXT_COLOR, HIGHLIGHT_COLOR); else M5Cardputer.Display.setTextColor(TEXT_COLOR); String itemText = sdCardMenuItems[i]; if (itemText == "Mount/Unmount SD") { itemText = isSdCardMounted ? "Unmount SD Card" : "Mount SD Card"; } M5Cardputer.Display.drawString(itemText, 20, 30 + i * 30); }
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
@@ -154,29 +178,44 @@ void drawSdCardMenu() {
 #endif
 #ifdef ENABLE_WIFI
 void drawWifiSettingsMenu() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawWifiSettingsMenu() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(middle_left); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
     for (int i = 0; i < numWifiMenuItems; i++) { if (i == currentWifiSelection) M5Cardputer.Display.setTextColor(HIGHLIGHT_TEXT_COLOR, HIGHLIGHT_COLOR); else M5Cardputer.Display.setTextColor(TEXT_COLOR); M5Cardputer.Display.drawString(wifiMenuItems[i], 20, 30 + i * 30); }
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
 }
 void drawWifiScanResults() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawWifiScanResults() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(middle_left); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.drawString("Select a Network:", 10, 5);
     for (size_t i = 0; i < scanned_networks.size(); i++) { if (i == selected_network_index) M5Cardputer.Display.setTextColor(HIGHLIGHT_TEXT_COLOR, HIGHLIGHT_COLOR); else M5Cardputer.Display.setTextColor(TEXT_COLOR); M5Cardputer.Display.drawString(scanned_networks[i], 20, 30 + i * 25); }
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
 }
 void drawPasswordInputScreen() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawPasswordInputScreen() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_left); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.drawString("Password for:", 10, 20); M5Cardputer.Display.drawString(selected_ssid, 10, 50); String stars = ""; for (size_t i = 0; i < password_buffer.length(); i++) { stars += "*"; }
     M5Cardputer.Display.drawString("> " + stars + "_", 10, 80);
 }
 #endif
 void drawFactoryResetConfirmScreen() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawFactoryResetConfirmScreen() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_center); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.setTextColor(WARNING_COLOR); M5Cardputer.Display.drawString("FACTORY RESET?", M5Cardputer.Display.width() / 2, 20); M5Cardputer.Display.drawString("ALL SAVED DATA WILL BE ERASED!", M5Cardputer.Display.width() / 2, 50);
     M5Cardputer.Display.setTextColor(WHITE); M5Cardputer.Display.drawString("Press 'Y' to confirm", M5Cardputer.Display.width() / 2, 90); M5Cardputer.Display.drawString("Any other key to cancel", M5Cardputer.Display.width() / 2, 115);
 }
 #ifdef ENABLE_WEB_SERVER
 void drawWebServerScreen() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawWebServerScreen() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_center); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
     #ifdef ENABLE_WIFI
@@ -192,10 +231,16 @@ void drawWebServerScreen() {
 }
 #endif
 void displayMessage(String line1, String line2, int delay_ms) {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: displayMessage() called with line1: " + line1 + ", line2: " + line2);
+    #endif
     M5Cardputer.Display.clear(); M5Cardputer.Display.setTextDatum(middle_center); M5Cardputer.Display.drawString(line1, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() / 2 - 15); if (line2 != "") { M5Cardputer.Display.drawString(line2, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() / 2 + 15); } delay(delay_ms);
 }
 #ifdef ENABLE_OTA
 void drawOtaScreen() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawOtaScreen() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(top_center);
     M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
@@ -216,6 +261,9 @@ void drawOtaScreen() {
 }
 #endif
 void drawKeyboardTestScreen() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: drawKeyboardTestScreen() called");
+    #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(top_center);
     M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);

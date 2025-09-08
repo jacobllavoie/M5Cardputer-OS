@@ -114,6 +114,9 @@ const char index_html[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 void handleFileList() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: handleFileList() called");
+    #endif
     File root = SD.open("/");
     String json = "[";
 
@@ -137,6 +140,9 @@ void handleFileList() {
 }
 
 void handleFileDelete() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: handleFileDelete() called");
+    #endif
     if (server.hasArg("file")) {
         String filePath = "/" + server.arg("file");
         if (SD.remove(filePath.c_str())) { // Use SD
@@ -150,25 +156,47 @@ void handleFileDelete() {
 }
 
 void handleFileUpload(){
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: handleFileUpload() called");
+    #endif
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
         String filename = "/" + upload.filename;
-        if(SD.exists(filename)){ // Use SD
-            SD.remove(filename); // Use SD
+        Serial.printf("Upload START: %s\n", filename.c_str());
+
+        if(SD.exists(filename)){
+            SD.remove(filename);
+            Serial.println("Existing file removed.");
         }
-        uploadFile = SD.open(filename.c_str(), FILE_WRITE); // Use SD
+        uploadFile = SD.open(filename.c_str(), FILE_WRITE);
+        if (!uploadFile) {
+            Serial.println("Failed to create file for writing!");
+            return;
+        }
+        Serial.println("File created for writing.");
+
     } else if(upload.status == UPLOAD_FILE_WRITE){
-        if(uploadFile)
-            uploadFile.write(upload.buf, upload.currentSize);
+        if(uploadFile){
+            size_t bytesWritten = uploadFile.write(upload.buf, upload.currentSize);
+            Serial.printf("Writing chunk: %d bytes\n", bytesWritten);
+            if (bytesWritten != upload.currentSize) {
+                Serial.println("File write failed!");
+            }
+        }
     } else if(upload.status == UPLOAD_FILE_END){
-        if(uploadFile)
+        if(uploadFile){
             uploadFile.close();
+            Serial.printf("Upload END. Total size: %d\n", upload.totalSize);
+        }
         server.sendHeader("Location", "/");
-        server.send(303);
+        server.send(303); // Redirect back to the main page
     }
 }
 
 void handleNotFound() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: handleNotFound() called");
+    #endif
     String path = server.uri();
     if (SD.exists(path)) { // Use SD
         File file = SD.open(path.c_str(), FILE_READ); // Use File and SD
@@ -180,6 +208,9 @@ void handleNotFound() {
 }
 
 void startWebServer() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: startWebServer() called");
+    #endif
     #ifdef ENABLE_SD_CARD
     if (!isSdCardMounted) return;
     #endif
@@ -223,10 +254,16 @@ void startWebServer() {
 }
 
 void stopWebServer() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: stopWebServer() called");
+    #endif
     server.stop();
 }
 
 void handleWebServerClient() {
+    #ifdef DEBUG_MODE
+    Serial.println("DEBUG: handleWebServerClient() called");
+    #endif
     server.handleClient();
 }
 #endif
