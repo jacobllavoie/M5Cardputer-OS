@@ -1,21 +1,33 @@
 #include "globals.h"
 #include "ui.h"
-#include "wifi.h"
-#include "sd_card.h"
-#include "web_server.h"
 #include "input.h"
-#include "ota.h"
 
+// --- Conditional Includes ---
+#ifdef ENABLE_WIFI
+#include "wifi.h"
+#endif
+#ifdef ENABLE_SD_CARD
+#include "sd_card.h"
+#endif
+#ifdef ENABLE_WEB_SERVER
+#include "web_server.h"
+#endif
+#ifdef ENABLE_OTA
+#include "ota.h"
+#endif
 
 void factoryReset() {
     displayMessage("Resetting...", "Erasing all settings.", 1500);
+    #ifdef ENABLE_WIFI
     preferences.begin("wifi-creds", false);
     preferences.clear();
     preferences.end();
+    #endif
     displayMessage("Reset Complete.", "Rebooting...", 2000);
     ESP.restart();
 }
 
+#ifdef ENABLE_SD_CARD
 void loadApp(String appName) {
     String appPath = "/apps/" + appName;
     if (!sd.exists(appPath.c_str())) {
@@ -53,7 +65,6 @@ void loadApp(String appName) {
         return;
     }
     
-    // Write the file in chunks to avoid watchdog timeout
     uint8_t buffer[4096];
     size_t bytesRead = 0;
     while ((bytesRead = appFile.read(buffer, sizeof(buffer))) > 0) {
@@ -63,7 +74,6 @@ void loadApp(String appName) {
             Update.abort();
             return;
         }
-        // Give the CPU time to handle other tasks
         yield(); 
     }
     appFile.close();
@@ -81,39 +91,59 @@ void loadApp(String appName) {
     displayMessage("Load complete.", "Rebooting into app...");
     ESP.restart();
 }
+#endif
 
 void handleInput() {
+    #ifdef ENABLE_WIFI
     if (currentState == STATE_WIFI_PASSWORD_INPUT) {
         handlePasswordInput();
         return;
     }
+    #endif
+
     if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
-        if (currentState == STATE_WEB_SERVER_ACTIVE || currentState == STATE_OTA_MODE) {
+        bool stateHandled = false;
+        #ifdef ENABLE_WEB_SERVER
+        if (currentState == STATE_WEB_SERVER_ACTIVE) {
              Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
              if (status.enter) {
-                 if (currentState == STATE_WEB_SERVER_ACTIVE) {
-                     stopWebServer();
-                     currentState = STATE_WIFI_SETTINGS_MENU;
-                 } else if (currentState == STATE_OTA_MODE) {
-                     stopOTA();
-                     currentState = STATE_SETTINGS_MENU;
-                 }
+                 stopWebServer();
+                 currentState = STATE_WIFI_SETTINGS_MENU;
                  drawScreen();
              }
-        } 
-        else {
-            if (currentState == STATE_MAIN_MENU)             handleMainMenuInput();
-            else if (currentState == STATE_KEYBOARD_TEST)    handleKeyboardTestInput(); // <-- ADD THIS LINE
-            else if (currentState == STATE_APPS_MENU)        handleAppsMenuInput();
-            else if (currentState == STATE_SETTINGS_MENU)    handleSettingsMenuInput();
+             stateHandled = true;
+        }
+        #endif
+        #ifdef ENABLE_OTA
+        if (currentState == STATE_OTA_MODE) {
+             Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+             if (status.enter) {
+                 stopOTA();
+                 currentState = STATE_SETTINGS_MENU;
+                 drawScreen();
+             }
+             stateHandled = true;
+        }
+        #endif
+
+        if (!stateHandled) {
+            if (currentState == STATE_MAIN_MENU) handleMainMenuInput();
+            else if (currentState == STATE_KEYBOARD_TEST) handleKeyboardTestInput();
+            else if (currentState == STATE_APPS_MENU) handleAppsMenuInput();
+            else if (currentState == STATE_SETTINGS_MENU) handleSettingsMenuInput();
             else if (currentState == STATE_DISPLAY_SETTINGS_MENU) handleDisplaySettingsInput();
-            else if (currentState == STATE_SDCARD_SETTINGS_MENU)  handleSdCardMenuInput();
-            else if (currentState == STATE_WIFI_SETTINGS_MENU)   handleWifiSettingsInput();
-            else if (currentState == STATE_WIFI_SCAN_RESULTS)  handleWifiScanResultsInput();
             else if (currentState == STATE_FACTORY_RESET_CONFIRM) handleFactoryResetConfirmInput();
+            #ifdef ENABLE_SD_CARD
+            else if (currentState == STATE_SDCARD_SETTINGS_MENU) handleSdCardMenuInput();
+            #endif
+            #ifdef ENABLE_WIFI
+            else if (currentState == STATE_WIFI_SETTINGS_MENU) handleWifiSettingsInput();
+            else if (currentState == STATE_WIFI_SCAN_RESULTS) handleWifiScanResultsInput();
+            #endif
         }
     }
 }
+
 
 void handleMainMenuInput() {
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
@@ -121,6 +151,7 @@ void handleMainMenuInput() {
     if (M5Cardputer.Keyboard.isKeyPressed('.')) { currentMainMenuSelection = (currentMainMenuSelection + 1) % numMainMenuItems; }
     if (status.enter) { 
         if (strcmp(mainMenuItems[currentMainMenuSelection], "Apps") == 0) {
+            #ifdef ENABLE_SD_CARD
             app_list.clear();
             FsFile root = sd.open("/apps");
             if (root && root.isDirectory()) {
@@ -137,9 +168,12 @@ void handleMainMenuInput() {
             }
             root.close();
             currentState = STATE_APPS_MENU;
+            #else
+            displayMessage("SD Card support disabled.");
+            #endif
         } 
-        else if (strcmp(mainMenuItems[currentMainMenuSelection], "Keyboard Test") == 0) { // <-- ADD THIS ELSE IF BLOCK
-            lastKeyPressed = "None"; // Reset for a clean start
+        else if (strcmp(mainMenuItems[currentMainMenuSelection], "Keyboard Test") == 0) {
+            lastKeyPressed = "None";
             currentState = STATE_KEYBOARD_TEST;
         } 
         else if (strcmp(mainMenuItems[currentMainMenuSelection], "Settings") == 0) { 
@@ -163,11 +197,15 @@ void handleAppsMenuInput() {
             currentAppSelection = (currentAppSelection + 1) % app_list.size();
     }
     if (status.enter) {
+        #ifdef ENABLE_SD_CARD
         if (!app_list.empty()) {
             loadApp(app_list[currentAppSelection]);
         } else {
             currentState = STATE_MAIN_MENU;
         }
+        #else
+        currentState = STATE_MAIN_MENU;
+        #endif
     }
     if (status.del) {
         currentState = STATE_MAIN_MENU;
@@ -179,7 +217,32 @@ void handleSettingsMenuInput() {
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentSettingsSelection = (currentSettingsSelection - 1 + numSettingsMenuItems) % numSettingsMenuItems; }
     if (M5Cardputer.Keyboard.isKeyPressed('.')) { currentSettingsSelection = (currentSettingsSelection + 1) % numSettingsMenuItems; }
-    if (status.enter) { const char* selected = settingsMenuItems[currentSettingsSelection]; if (strcmp(selected, "Display") == 0) currentState = STATE_DISPLAY_SETTINGS_MENU; else if (strcmp(selected, "SD Card") == 0) currentState = STATE_SDCARD_SETTINGS_MENU; else if (strcmp(selected, "WiFi") == 0) currentState = STATE_WIFI_SETTINGS_MENU; else if (strcmp(selected, "OTA Update") == 0) { if (WiFi.status() == WL_CONNECTED) { currentState = STATE_OTA_MODE; setupOTA(); } else { displayMessage("WiFi is not connected."); } } else if (strcmp(selected, "Factory Reset") == 0) currentState = STATE_FACTORY_RESET_CONFIRM; else if (strcmp(selected, "Back") == 0) currentState = STATE_MAIN_MENU; }
+    if (status.enter) { 
+        const char* selected = settingsMenuItems[currentSettingsSelection]; 
+        if (strcmp(selected, "Display") == 0) currentState = STATE_DISPLAY_SETTINGS_MENU; 
+        #ifdef ENABLE_SD_CARD
+        else if (strcmp(selected, "SD Card") == 0) currentState = STATE_SDCARD_SETTINGS_MENU; 
+        #endif
+        #ifdef ENABLE_WIFI
+        else if (strcmp(selected, "WiFi") == 0) currentState = STATE_WIFI_SETTINGS_MENU; 
+        #endif
+        #ifdef ENABLE_OTA
+        else if (strcmp(selected, "OTA Update") == 0) { 
+            #ifdef ENABLE_WIFI
+            if (WiFi.status() == WL_CONNECTED) { 
+                currentState = STATE_OTA_MODE; 
+                setupOTA(); 
+            } else { 
+                displayMessage("WiFi is not connected."); 
+            }
+            #else
+            displayMessage("WiFi support disabled.");
+            #endif
+        }
+        #endif
+        else if (strcmp(selected, "Factory Reset") == 0) currentState = STATE_FACTORY_RESET_CONFIRM; 
+        else if (strcmp(selected, "Back") == 0) currentState = STATE_MAIN_MENU; 
+    }
     drawScreen();
 }
 
@@ -192,19 +255,43 @@ void handleDisplaySettingsInput() {
     drawScreen();
 }
 
+#ifdef ENABLE_SD_CARD
 void handleSdCardMenuInput() {
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentSdCardSelection = (currentSdCardSelection - 1 + numSdCardMenuItems) % numSdCardMenuItems; }
     if (M5Cardputer.Keyboard.isKeyPressed('.')) { currentSdCardSelection = (currentSdCardSelection + 1) % numSdCardMenuItems; }
-    if (status.enter) { const char* selected = sdCardMenuItems[currentSdCardSelection]; if (strcmp(selected, "SD Card Info") == 0) { showSDCardInfo(); } else if (strcmp(selected, "Mount/Unmount SD") == 0) { if (isSdCardMounted) unmountSD(); else mountSD(); } else if (strcmp(selected, "Back") == 0) { currentState = STATE_SETTINGS_MENU; } }
+    if (status.enter) { 
+        const char* selected = sdCardMenuItems[currentSdCardSelection]; 
+        if (strcmp(selected, "SD Card Info") == 0) { showSDCardInfo(); } 
+        else if (strcmp(selected, "Mount/Unmount SD") == 0) { if (isSdCardMounted) unmountSD(); else mountSD(); } 
+        else if (strcmp(selected, "Back") == 0) { currentState = STATE_SETTINGS_MENU; } 
+    }
     drawScreen();
 }
+#endif
 
+#ifdef ENABLE_WIFI
 void handleWifiSettingsInput() {
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentWifiSelection = (currentWifiSelection - 1 + numWifiMenuItems) % numWifiMenuItems; }
     if (M5Cardputer.Keyboard.isKeyPressed('.')) { currentWifiSelection = (currentWifiSelection + 1) % numWifiMenuItems; }
-    if (status.enter) { const char* selected = wifiMenuItems[currentWifiSelection]; if (strcmp(selected, "Status") == 0) showWifiStatus(); else if (strcmp(selected, "Scan for Networks") == 0) scanWifiNetworks(); else if (strcmp(selected, "Web Server") == 0) { if (WiFi.status() == WL_CONNECTED) { currentState = STATE_WEB_SERVER_ACTIVE; startWebServer(); } else { displayMessage("WiFi is not connected."); } } else if (strcmp(selected, "Disconnect") == 0) disconnectWifi(); else if (strcmp(selected, "Back") == 0) currentState = STATE_SETTINGS_MENU; }
+    if (status.enter) { 
+        const char* selected = wifiMenuItems[currentWifiSelection]; 
+        if (strcmp(selected, "Status") == 0) showWifiStatus(); 
+        else if (strcmp(selected, "Scan for Networks") == 0) scanWifiNetworks(); 
+        #ifdef ENABLE_WEB_SERVER
+        else if (strcmp(selected, "Web Server") == 0) { 
+            if (WiFi.status() == WL_CONNECTED) { 
+                currentState = STATE_WEB_SERVER_ACTIVE; 
+                startWebServer(); 
+            } else { 
+                displayMessage("WiFi is not connected."); 
+            } 
+        }
+        #endif
+        else if (strcmp(selected, "Disconnect") == 0) disconnectWifi(); 
+        else if (strcmp(selected, "Back") == 0) currentState = STATE_SETTINGS_MENU; 
+    }
     drawScreen();
 }
 
@@ -246,6 +333,7 @@ void handlePasswordInput() {
         drawPasswordInputScreen();
     }
 }
+#endif
 
 void handleFactoryResetConfirmInput() {
     if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
@@ -259,16 +347,19 @@ void handleFactoryResetConfirmInput() {
         drawScreen();
     }
 }
+
 void handleKeyboardTestInput() {
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 
     if (!status.word.empty()) {
-        // Create a String from the vector of characters
-        lastKeyPressed = String(status.word.data(), status.word.size());
+        lastKeyPressed = "";
+        for(char c : status.word) {
+            lastKeyPressed += c;
+        }
     } else if (status.enter) {
         lastKeyPressed = "Enter";
     } else if (status.del) {
-        currentState = STATE_MAIN_MENU; // Exit on Del
+        currentState = STATE_MAIN_MENU; 
     } else if (status.tab) {
         lastKeyPressed = "Tab";
     } else if (status.fn) {

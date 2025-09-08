@@ -1,7 +1,14 @@
 #include "globals.h"
 #include "serial.h"
+
+// Conditional includes for dependencies
+#ifdef ENABLE_WIFI
 #include "wifi.h"
+#endif
+#ifdef ENABLE_SD_CARD
 #include "sd_card.h"
+#endif
+
 #include "ui.h" 
 
 String serial_buffer = "";
@@ -38,16 +45,21 @@ void processSerialCommand(String command) {
     } 
     else if (lowerCaseCommand.equalsIgnoreCase("status")) {
         Serial.println("--- System Status ---");
+        #ifdef ENABLE_WIFI
         if (WiFi.status() == WL_CONNECTED) {
             Serial.println("WiFi: Connected to " + WiFi.SSID());
             Serial.println("IP Address: " + WiFi.localIP().toString());
         } else {
             Serial.println("WiFi: Disconnected");
         }
+        #endif
+        #ifdef ENABLE_SD_CARD
         Serial.println("SD Card: " + String(isSdCardMounted ? "Mounted" : "Not Mounted"));
+        #endif
         Serial.println("Battery: " + String(M5.Power.getBatteryLevel()) + "% (" + String(M5.Power.getBatteryVoltage() / 1000.0, 2) + "V)");
         Serial.println("---------------------");
     }
+    #ifdef ENABLE_WIFI
     else if (lowerCaseCommand.equalsIgnoreCase("scan")) {
         scanWifiNetworks();
     }
@@ -67,6 +79,7 @@ void processSerialCommand(String command) {
             Serial.println("Invalid format. Use: connect <ssid> <password>");
         }
     }
+    #endif
     else if (lowerCaseCommand.equalsIgnoreCase("reboot")) {
         Serial.println("Rebooting now...");
         delay(100);

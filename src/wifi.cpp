@@ -1,3 +1,4 @@
+#ifdef ENABLE_WIFI
 #include "globals.h"
 #include "ui.h"
 #include "ota.h"
@@ -68,3 +69,4 @@ void disconnectWifi() {
     preferences.end();
     displayMessage("Disconnected & Forgotten");
 }
+#endif

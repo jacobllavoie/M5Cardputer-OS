@@ -1,3 +1,4 @@
+#ifdef ENABLE_OTA
 #include "globals.h"
 #include "ui.h"
 #include "web_server.h"
@@ -52,3 +53,4 @@ void stopOTA() {
 void handleOTA() {
   ArduinoOTA.handle();
 }
+#endif

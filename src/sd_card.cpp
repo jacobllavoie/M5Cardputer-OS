@@ -1,3 +1,4 @@
+#ifdef ENABLE_SD_CARD
 #include "globals.h"
 #include "ui.h"
 
@@ -38,3 +39,4 @@ void showSDCardInfo() {
         displayMessage("SD Card Not Mounted");
     }
 }
+#endif

@@ -1,11 +1,21 @@
 #include "globals.h"
 #include "ui.h"
 #include "input.h"
-#include "sd_card.h"
-#include "wifi.h"
 #include "serial.h" 
+
+// --- Conditional Includes ---
+#ifdef ENABLE_SD_CARD
+#include "sd_card.h"
+#endif
+#ifdef ENABLE_WIFI
+#include "wifi.h"
+#endif
+#ifdef ENABLE_WEB_SERVER
 #include "web_server.h"
+#endif
+#ifdef ENABLE_OTA
 #include "ota.h"
+#endif
 
 // Timer for battery status refresh
 unsigned long last_battery_update = 0;
@@ -18,21 +28,32 @@ void setup() {
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setRotation(1);
 
+    #ifdef ENABLE_SD_CARD
     displayMessage("Mounting SD Card...", "", 1000);
     mountSD();
+    #endif
     
+    #ifdef ENABLE_WIFI
     wifiAutoConnect();
+    #endif
+
     drawScreen();
 }
 
 void loop() {
     M5Cardputer.update();
 
+    #ifdef ENABLE_WEB_SERVER
     if (currentState == STATE_WEB_SERVER_ACTIVE) {
         handleWebServerClient();
-    } else if (currentState == STATE_OTA_MODE) {
+    } 
+    #endif
+    
+    #ifdef ENABLE_OTA
+    if (currentState == STATE_OTA_MODE) {
         handleOTA();
     }
+    #endif
 
     handleInput();
     handleSerial();

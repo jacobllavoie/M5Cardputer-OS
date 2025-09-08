@@ -1,3 +1,4 @@
+#ifdef ENABLE_WEB_SERVER
 #include "globals.h"
 #include <WebServer.h>
 #include "ui.h"
@@ -237,3 +238,4 @@ void stopWebServer() {
 void handleWebServerClient() {
     server.handleClient();
 }
+#endif
