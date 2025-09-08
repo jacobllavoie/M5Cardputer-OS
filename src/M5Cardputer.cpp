@@ -1,7 +1,6 @@
 #include "globals.h"
 #include "ui.h"
 #include "input.h"
-#include "serial.h" 
 
 // --- Conditional Includes ---
 #ifdef ENABLE_SD_CARD
@@ -22,43 +21,95 @@ unsigned long last_battery_update = 0;
 const int battery_update_interval = 2000;
 
 void setup() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: setup() called");
-    #endif
+#include "M5Cardputer.h"
+#include "globals.h"
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
-    Serial.begin(115200);
     M5Cardputer.Display.setTextSize(1);
     M5Cardputer.Display.setRotation(1);
 
+    #ifdef ENABLE_VERBOSE_BOOT
+    String serialStatus = "initializing";
+    String sdStatus = "mounting";
+    String wifiStatus = "idle";
+    String ip = "...";
+
+    // Show initial boot list
+    drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+    delay(800);
+
     initializeMenus();
 
+    // Update serial status only in boot list
     #ifdef ENABLE_SETTINGS_PERSISTENCE
-    // Open preferences and check if it was successful
     if (preferences.begin("disp-settings", true)) {
         menuTextSize = preferences.getFloat("fontSize", 0.8f);
         preferences.end();
-        displayMessage("Loaded Font Size:", String(menuTextSize, 2), 1500);
+        serialStatus = "initialized";
     } else {
-        displayMessage("Error:", "Failed to load settings!", 2000);
+        serialStatus = "error";
+    }
+    drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+    delay(700);
+    #endif
+
+    // Update SD card status only in boot list
+    #ifdef ENABLE_SD_CARD
+    mountSD();
+    if (isSdCardMounted) {
+        sdStatus = "mounted";
+        if (!SD.exists("/apps")) {
+            debugMessage("DEBUG:", "Creating /apps dir on SD card");
+            SD.mkdir("/apps");
+        }
+    } else {
+        sdStatus = "error";
+    }
+    drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+    delay(900);
+    #endif
+
+    // Update WiFi status only in boot list
+    #ifdef ENABLE_WIFI
+    preferences.begin("wifi-creds", true);
+    String ssid = preferences.getString("ssid", "");
+    preferences.end();
+    if (ssid.length() > 0) {
+        wifiStatus = "connecting";
+        drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+        wifiAutoConnect(false);
+        if (WiFi.status() == WL_CONNECTED) {
+            wifiStatus = "connected";
+            ip = WiFi.localIP().toString();
+        } else {
+            wifiStatus = "error";
+        }
+    drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+    delay(900);
+    }
+    else {
+    drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+    delay(600);
     }
     #endif
 
-    #ifdef ENABLE_SD_CARD
-    mountSD();
-    #endif
-    
-    #ifdef ENABLE_WIFI
-    wifiAutoConnect();
+    drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
+    delay(1200);
+
+    // Show WELCOME screen
+    M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
+    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setTextSize(1.5f);
+    M5Cardputer.Display.setTextDatum(middle_center);
+    M5Cardputer.Display.setTextColor(COLOR_CYAN, BACKGROUND_COLOR);
+    M5Cardputer.Display.drawString("Welcome", M5Cardputer.Display.width()/2, M5Cardputer.Display.height()/2);
+    delay(1200);
     #endif
 
     drawScreen();
 }
 
 void loop() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: loop() called");
-    #endif
     M5Cardputer.update();
 
     #ifdef ENABLE_WEB_SERVER
@@ -74,7 +125,6 @@ void loop() {
     #endif
 
     handleInput();
-    handleSerial();
 
     if (currentState == STATE_MAIN_MENU) {
         if (millis() - last_battery_update > battery_update_interval) {

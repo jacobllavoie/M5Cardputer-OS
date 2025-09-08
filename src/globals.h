@@ -111,5 +111,6 @@ extern int currentWifiSelection;
 #define HIGHLIGHT_COLOR WHITE
 #define HIGHLIGHT_TEXT_COLOR BLACK
 #define WARNING_COLOR RED
+#define COLOR_CYAN 0x07FF
 
 #endif

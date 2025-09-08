@@ -46,92 +46,155 @@ const char index_html[] PROGMEM = R"rawliteral(
   </form>
 
   <script>
-    function formatBytes(bytes, decimals = 2) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    }
+let currentDir = '/';
 
-    function loadSdStatus() {
-        fetch('/sdinfo')
-            .then(response => response.json())
-            .then(data => {
-                const total = data.total || 0;
-                const used = data.used || 0;
-                const free = total - used;
-                const percentUsed = total > 0 ? ((used / total) * 100).toFixed(1) : 0;
-                const percentFree = total > 0 ? ((free / total) * 100).toFixed(1) : 0;
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
 
-                document.getElementById('total-space').innerText = formatBytes(total);
-                document.getElementById('used-space').innerText = `${formatBytes(used)} (${percentUsed}%)`;
-                document.getElementById('free-space').innerText = `${formatBytes(free)} (${percentFree}%)`;
-            });
-    }
-
-    function loadFiles() {
-      fetch('/list')
+function loadSdStatus() {
+    fetch('/sdinfo')
         .then(response => response.json())
         .then(data => {
-          const tbody = document.querySelector("#file-list tbody");
-          tbody.innerHTML = '';
-          data.forEach(file => {
-            const row = `<tr>
-              <td><a href="/${file.name}">${file.name}</a></td>
-              <td>${file.size}</td>
-              <td><button class="btn-delete" onclick="deleteFile('${file.name}')">Delete</button></td>
-            </tr>`;
-            tbody.innerHTML += row;
-          });
-        });
-    }
+            const total = data.total || 0;
+            const used = data.used || 0;
+            const free = total - used;
+            const percentUsed = total > 0 ? ((used / total) * 100).toFixed(1) : 0;
+            const percentFree = total > 0 ? ((free / total) * 100).toFixed(1) : 0;
 
-    function deleteFile(filename) {
-      if (confirm(`Are you sure you want to delete ${filename}?`)) {
-        fetch(`/delete?file=${filename}`, { method: 'GET' })
-          .then(response => {
-              loadFiles();
-              loadSdStatus();
-          });
-      }
+            document.getElementById('total-space').innerText = formatBytes(total);
+            document.getElementById('used-space').innerText = `${formatBytes(used)} (${percentUsed}%)`;
+            document.getElementById('free-space').innerText = `${formatBytes(free)} (${percentFree}%)`;
+        });
+}
+
+function loadFiles(dir = '/') {
+    currentDir = dir;
+    fetch(`/list?dir=${encodeURIComponent(dir)}`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.querySelector("#file-list tbody");
+            tbody.innerHTML = '';
+            if (dir !== '/') {
+                tbody.innerHTML += `<tr>
+                    <td colspan="3"><button onclick="loadFiles('${dir.substring(0, dir.lastIndexOf('/')) || '/'}')">⬅️ Up</button></td>
+                </tr>`;
+            }
+            data.forEach(file => {
+                if (file.isDir === "true") {
+                    tbody.innerHTML += `<tr>
+                        <td><a href="#" onclick="event.preventDefault(); loadFiles('${dir}/${file.name}')">${file.name}/</a></td>
+                        <td>DIR</td>
+                        <td>
+                            <button onclick="deleteFile('${dir}/${file.name}')">Delete</button>
+                            <button onclick="moveFilePrompt('${dir}/${file.name}')">Move</button>
+                            <button onclick="copyFilePrompt('${dir}/${file.name}')">Copy</button>
+                        </td>
+                    </tr>`;
+                } else {
+                    tbody.innerHTML += `<tr>
+                        <td><a href="/${file.name}">${file.name}</a></td>
+                        <td>${file.size}</td>
+                        <td>
+                            <button onclick="deleteFile('${dir}/${file.name}')">Delete</button>
+                            <button onclick="moveFilePrompt('${dir}/${file.name}')">Move</button>
+                            <button onclick="copyFilePrompt('${dir}/${file.name}')">Copy</button>
+                        </td>
+                    </tr>`;
+                }
+            });
+        });
+}
+
+function deleteFile(path) {
+    if (confirm(`Are you sure you want to delete ${path}?`)) {
+        fetch(`/delete?file=${encodeURIComponent(path)}`, { method: 'GET' })
+            .then(() => {
+                loadFiles(currentDir);
+                loadSdStatus();
+            });
     }
-    
-    document.querySelector('form').addEventListener('submit', function(e) {
+}
+
+function moveFilePrompt(path) {
+    const to = prompt("Move to (full path):", path);
+    if (to && to !== path) {
+        fetch(`/move?from=${encodeURIComponent(path)}&to=${encodeURIComponent(to)}`, { method: 'GET' })
+            .then(() => loadFiles(currentDir));
+    }
+}
+
+function copyFilePrompt(path) {
+    const to = prompt("Copy to (full path):", path + '_copy');
+    if (to && to !== path) {
+        fetch(`/copy?from=${encodeURIComponent(path)}&to=${encodeURIComponent(to)}`, { method: 'GET' })
+            .then(() => loadFiles(currentDir));
+    }
+}
+
+function createFolderPrompt() {
+    const folderName = prompt("New folder name:");
+    if (folderName) {
+        fetch(`/mkdir?dir=${encodeURIComponent(currentDir + '/' + folderName)}`, { method: 'GET' })
+            .then(() => loadFiles(currentDir));
+    }
+}
+
+document.querySelector('form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    fetch(`/upload?dir=${encodeURIComponent(currentDir)}`, {
+        method: 'POST',
+        body: formData
+    }).then(() => {
         setTimeout(() => {
-            loadFiles();
+            loadFiles(currentDir);
             loadSdStatus();
         }, 2000);
     });
+});
 
-    window.onload = () => {
-        loadFiles();
-        loadSdStatus();
-    };
-  </script>
+window.onload = () => {
+    // Use the current URL path as the initial directory
+    let initialDir = decodeURIComponent(window.location.pathname);
+    if (!initialDir || initialDir === '') initialDir = '/';
+    loadFiles(initialDir);
+    loadSdStatus();
+    // Add create folder button
+    const h3 = document.querySelector('h3');
+    const btn = document.createElement('button');
+    btn.textContent = 'Create Folder';
+    btn.onclick = createFolderPrompt;
+    h3.parentNode.insertBefore(btn, h3.nextSibling);
+};
+</script>
 </body></html>
 )rawliteral";
 
 void handleFileList() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleFileList() called");
-    #endif
-    File root = SD.open("/");
+    String dir = "/";
+    if (server.hasArg("dir")) {
+        dir = server.arg("dir");
+        if (!dir.startsWith("/")) dir = "/" + dir;
+    }
+    File root = SD.open(dir);
     String json = "[";
-
     while (true) {
         File entry = root.openNextFile();
         if (!entry) {
             break;
         }
-        if (!entry.isDirectory()) {
-            if (json != "[") {
-                json += ",";
-            }
-            // Use entry.name() to get the filename
-            json += "{\"name\":\"" + String(entry.name()) + "\",\"size\":" + String(entry.size()) + "}";
+        if (json != "[") {
+            json += ",";
         }
+        json += "{\"name\":\"" + String(entry.name()) + "\",";
+        json += "\"size\":" + String(entry.size()) + ",";
+        json += "\"isDir\":" + String(entry.isDirectory() ? "true" : "false") + "}";
         entry.close();
     }
     json += "]";
@@ -139,10 +202,53 @@ void handleFileList() {
     server.send(200, "application/json", json);
 }
 
+void handleMkdir() {
+    String dir = server.arg("dir");
+    if (!dir.startsWith("/")) dir = "/" + dir;
+    if (SD.mkdir(dir)) {
+        server.send(200, "text/plain", "Folder created");
+    } else {
+        server.send(500, "text/plain", "Failed to create folder");
+    }
+}
+
+void handleMove() {
+    String from = server.arg("from");
+    String to = server.arg("to");
+    if (!from.startsWith("/")) from = "/" + from;
+    if (!to.startsWith("/")) to = "/" + to;
+    if (SD.rename(from.c_str(), to.c_str())) {
+        server.send(200, "text/plain", "Moved");
+    } else {
+        server.send(500, "text/plain", "Move failed");
+    }
+}
+
+void handleCopy() {
+    String from = server.arg("from");
+    String to = server.arg("to");
+    if (!from.startsWith("/")) from = "/" + from;
+    if (!to.startsWith("/")) to = "/" + to;
+    File src = SD.open(from.c_str(), FILE_READ);
+    File dst = SD.open(to.c_str(), FILE_WRITE);
+    if (!src || !dst) {
+        server.send(500, "text/plain", "Copy failed");
+        if (src) src.close();
+        if (dst) dst.close();
+        return;
+    }
+    uint8_t buf[512];
+    size_t n;
+    while ((n = src.read(buf, sizeof(buf))) > 0) {
+        dst.write(buf, n);
+    }
+    src.close();
+    dst.close();
+    server.send(200, "text/plain", "Copied");
+}
+
 void handleFileDelete() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleFileDelete() called");
-    #endif
+    debugMessage("DEBUG:", "handleFileDelete() called");
     if (server.hasArg("file")) {
         String filePath = "/" + server.arg("file");
         if (SD.remove(filePath.c_str())) { // Use SD
@@ -156,37 +262,35 @@ void handleFileDelete() {
 }
 
 void handleFileUpload(){
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleFileUpload() called");
-    #endif
+    debugMessage("DEBUG:", "handleFileUpload() called");
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
         String filename = "/" + upload.filename;
-        Serial.printf("Upload START: %s\n", filename.c_str());
+    debugMessage("DEBUG:", "Upload START: " + filename);
 
         if(SD.exists(filename)){
             SD.remove(filename);
-            Serial.println("Existing file removed.");
+            debugMessage("DEBUG:", "Existing file removed.");
         }
         uploadFile = SD.open(filename.c_str(), FILE_WRITE);
         if (!uploadFile) {
-            Serial.println("Failed to create file for writing!");
+            debugMessage("DEBUG:", "Failed to create file for writing!");
             return;
         }
-        Serial.println("File created for writing.");
+    debugMessage("DEBUG:", "File created for writing.");
 
     } else if(upload.status == UPLOAD_FILE_WRITE){
         if(uploadFile){
             size_t bytesWritten = uploadFile.write(upload.buf, upload.currentSize);
-            Serial.printf("Writing chunk: %d bytes\n", bytesWritten);
+            debugMessage("DEBUG:", "Writing chunk: " + String(bytesWritten) + " bytes");
             if (bytesWritten != upload.currentSize) {
-                Serial.println("File write failed!");
+                debugMessage("DEBUG:", "File write failed!");
             }
         }
     } else if(upload.status == UPLOAD_FILE_END){
         if(uploadFile){
             uploadFile.close();
-            Serial.printf("Upload END. Total size: %d\n", upload.totalSize);
+            debugMessage("DEBUG:", "Upload END. Total size: " + String(upload.totalSize));
         }
         server.sendHeader("Location", "/");
         server.send(303); // Redirect back to the main page
@@ -194,76 +298,102 @@ void handleFileUpload(){
 }
 
 void handleNotFound() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleNotFound() called");
-    #endif
+    debugMessage("DEBUG:", "handleNotFound() called");
+    debugMessage("DEBUG:", "Requested URI: " + server.uri());
     String path = server.uri();
-    if (SD.exists(path)) { // Use SD
-        File file = SD.open(path.c_str(), FILE_READ); // Use File and SD
-        if (file) {
-            // ... (rest of function is the same)
+    #ifdef ENABLE_SD_CARD
+    if (SD.exists(path)) {
+        File f = SD.open(path);
+        if (f && f.isDirectory()) {
+            f.close();
+            server.send_P(200, "text/html", index_html);
+            return;
         }
+        if (f) f.close();
     }
-    server.send(404, "text/plain", "Not Found");
+    #endif
+    server.send(404, "text/plain", "Not Found: " + path);
+}
+
+void handleFolderRequest() {
+    String dir = server.uri();
+    if (!SD.exists(dir) || !SD.open(dir).isDirectory()) {
+        server.send(404, "text/plain", "Not Found: " + dir);
+        return;
+    }
+    server.send_P(200, "text/html", index_html);
+}
+
+void handleFileServe() {
+    String path = server.uri();
+    debugMessage("DEBUG:", "handleFileServe() called for path: " + path);
+    debugMessage("DEBUG:", "SD.exists(path) = " + String(SD.exists(path) ? "true" : "false"));
+    if (SD.exists(path)) {
+        File file = SD.open(path.c_str(), FILE_READ);
+        if (file && !file.isDirectory()) {
+            String contentType = "application/octet-stream";
+            if (path.endsWith(".jpg")) contentType = "image/jpeg";
+            else if (path.endsWith(".png")) contentType = "image/png";
+            else if (path.endsWith(".gif")) contentType = "image/gif";
+            else if (path.endsWith(".txt")) contentType = "text/plain";
+            else if (path.endsWith(".html")) contentType = "text/html";
+            server.streamFile(file, contentType);
+            file.close();
+            return;
+        }
+        if (file) file.close();
+    }
+    server.send(404, "text/plain", "File Not Found: " + path);
 }
 
 void startWebServer() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: startWebServer() called");
-    #endif
+    debugMessage("DEBUG:", "startWebServer() called");
     #ifdef ENABLE_SD_CARD
     if (!isSdCardMounted) return;
     #endif
-
     server.on("/", HTTP_GET, [](){
         server.send_P(200, "text/html", index_html);
     });
-
     server.on("/sdinfo", HTTP_GET, [](){
         #ifdef ENABLE_SD_CARD
         if (!isSdCardMounted) {
             server.send(503, "application/json", "{\"error\":\"SD Card not mounted\"}");
             return;
         }
-        
-        // Use the updated SD library functions
         uint64_t totalBytes = SD.totalBytes();
         uint64_t usedBytes = SD.usedBytes();
-
         String json = "{";
         json += "\"total\":" + String(totalBytes) + ",";
         json += "\"used\":" + String(usedBytes);
         json += "}";
-        
         server.send(200, "application/json", json);
         #else
         server.send(503, "application/json", "{\"error\":\"SD Card support disabled\"}");
         #endif
     });
-
     server.on("/list", HTTP_GET, handleFileList);
+    server.on("/mkdir", HTTP_GET, handleMkdir);
+    server.on("/move", HTTP_GET, handleMove);
+    server.on("/copy", HTTP_GET, handleCopy);
     server.on("/delete", HTTP_GET, handleFileDelete);
-    
     server.on("/upload", HTTP_POST, [](){
         server.send(200);
     }, handleFileUpload);
-
-    server.onNotFound(handleNotFound);
-
+    // Catch-all for folder paths
+    server.on("/apps", HTTP_GET, handleFolderRequest);
+    server.on("/test", HTTP_GET, handleFolderRequest);
+    // Optionally, add more or use a wildcard if supported
+    server.onNotFound(handleFileServe);
     server.begin();
 }
 
 void stopWebServer() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: stopWebServer() called");
-    #endif
+    debugMessage("DEBUG:", "stopWebServer() called");
     server.stop();
 }
 
 void handleWebServerClient() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleWebServerClient() called");
-    #endif
+    debugMessage("DEBUG:", "handleWebServerClient() called");
     server.handleClient();
 }
 #endif

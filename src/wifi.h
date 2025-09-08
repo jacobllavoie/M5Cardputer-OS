@@ -2,7 +2,7 @@
 #ifndef WIFI_H
 #define WIFI_H
 
-void wifiAutoConnect();
+void wifiAutoConnect(bool returnToWifiMenu = false);
 void showWifiStatus();
 void scanWifiNetworks();
 void disconnectWifi();

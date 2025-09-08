@@ -1,3 +1,4 @@
+void drawStartupScreen(String serialStatus, String sdStatus, String wifiStatus, String ip, bool showWelcome);
 #ifndef UI_H
 #define UI_H
 
@@ -20,5 +21,6 @@ void drawOtaScreen();
 void drawKeyboardTestScreen();
 void drawBatteryStatus();
 void displayMessage(String line1, String line2 = "", int delay_ms = 2000);
+void debugMessage(String line1, String line2 = "");
 
 #endif

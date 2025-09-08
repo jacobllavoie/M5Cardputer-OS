@@ -8,18 +8,26 @@
 #define SD_SPI_CS_PIN   12
 
 void mountSD() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: mountSD() called");
-    #endif
+    debugMessage("DEBUG:", "mountSD() called");
     if (!isSdCardMounted) {
         SPI.begin(SD_SPI_SCK_PIN, SD_SPI_MISO_PIN, SD_SPI_MOSI_PIN);
-
-        if (!SD.begin(SD_SPI_CS_PIN, SPI, 25000000)) {
+        bool mounted = false;
+        long freqs[] = {4000000, 10000000, 25000000};
+        for (int i = 0; i < 3; ++i) {
+            debugMessage("DEBUG:", "Trying SD.begin() freq " + String(freqs[i]));
+            if (SD.begin(SD_SPI_CS_PIN, SPI, freqs[i])) {
+                mounted = true;
+                break;
+            }
+        }
+        if (!mounted) {
             displayMessage("SD Card Mount Failed!");
+            debugMessage("DEBUG:", "SD Card mount failed at all freqs");
             isSdCardMounted = false;
         } else {
             isSdCardMounted = true;
-            displayMessage("SD Card Mounted!");
+            // displayMessage("SD Card Mounted!");
+            debugMessage("DEBUG:", "SD Card mounted successfully");
         }
     } else {
         displayMessage("Already Mounted");
@@ -27,9 +35,7 @@ void mountSD() {
 }
 
 void unmountSD() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: unmountSD() called");
-    #endif
+    debugMessage("DEBUG:", "unmountSD() called");
     if (isSdCardMounted) {
         isSdCardMounted = false;
         displayMessage("SD Card Unmounted");
@@ -39,9 +45,7 @@ void unmountSD() {
 }
 
 void showSDCardInfo() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: showSDCardInfo() called");
-    #endif
+    debugMessage("DEBUG:", "showSDCardInfo() called");
     if (isSdCardMounted) {
         uint64_t cardSize = SD.cardSize() / (1024 * 1024);
         String cardType = "";

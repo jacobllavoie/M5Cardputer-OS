@@ -17,9 +17,7 @@
 #endif
 
 void factoryReset() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: factoryReset() called");
-    #endif
+    debugMessage("DEBUG:", "factoryReset() called");
     displayMessage("Resetting...", "Erasing all settings.", 1500);
     #ifdef ENABLE_WIFI
     preferences.begin("wifi-creds", false);
@@ -37,9 +35,7 @@ void factoryReset() {
 
 #if defined(ENABLE_SD_CARD) && defined(ENABLE_OTA)
 void loadApp(String appName) {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: loadApp() called with appName: " + appName);
-    #endif
+    debugMessage("DEBUG:", "loadApp() " + appName);
     String appPath = "/apps/" + appName;
     if (!SD.exists(appPath.c_str())) {
         displayMessage("Error:", "App file not found!");
@@ -105,9 +101,6 @@ void loadApp(String appName) {
 #endif
 
 void handleInput() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleInput() called");
-    #endif
     #ifdef ENABLE_WIFI
     if (currentState == STATE_WIFI_PASSWORD_INPUT) {
         handlePasswordInput();
@@ -161,7 +154,7 @@ void handleInput() {
 
 void handleMainMenuInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleMainMenuInput() called");
+    debugMessage("DEBUG:", "handleMainMenuInput() called");
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentMainMenuSelection = (currentMainMenuSelection - 1 + numMainMenuItems) % numMainMenuItems; }
@@ -204,7 +197,7 @@ void handleMainMenuInput() {
 
 void handleAppsMenuInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleAppsMenuInput() called");
+    debugMessage("DEBUG:", "handleAppsMenuInput() called");
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { 
@@ -234,7 +227,7 @@ void handleAppsMenuInput() {
 
 void handleSettingsMenuInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleSettingsMenuInput() called");
+    debugMessage("DEBUG:", "handleSettingsMenuInput() called");
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentSettingsSelection = (currentSettingsSelection - 1 + numSettingsMenuItems) % numSettingsMenuItems; }
@@ -270,7 +263,7 @@ void handleSettingsMenuInput() {
 
 void handleDisplaySettingsInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleDisplaySettingsInput() called");
+    debugMessage("DEBUG:", "handleDisplaySettingsInput() called");
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     bool sizeChanged = false;
@@ -312,7 +305,7 @@ void handleDisplaySettingsInput() {
 #ifdef ENABLE_SD_CARD
 void handleSdCardMenuInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleSdCardMenuInput() called");
+    debugMessage("DEBUG:", "handleSdCardMenuInput() called");
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentSdCardSelection = (currentSdCardSelection - 1 + numSdCardMenuItems) % numSdCardMenuItems; }
@@ -330,7 +323,7 @@ void handleSdCardMenuInput() {
 #ifdef ENABLE_WIFI
 void handleWifiSettingsInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleWifiSettingsInput() called");
+    debugMessage("DEBUG:", "handleWifiSettingsInput() called");
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentWifiSelection = (currentWifiSelection - 1 + numWifiMenuItems) % numWifiMenuItems; }
@@ -357,7 +350,7 @@ void handleWifiSettingsInput() {
 
 void handleWifiScanResultsInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleWifiScanResultsInput() called");
+    debugMessage("DEBUG:", "handleWifiScanResultsInput() called");
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { 
@@ -380,7 +373,7 @@ void handleWifiScanResultsInput() {
 
 void handlePasswordInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handlePasswordInput() called");
+    debugMessage("DEBUG:", "handlePasswordInput() called");
     #endif
     if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
@@ -393,7 +386,7 @@ void handlePasswordInput() {
             preferences.putString("password", password_buffer);
             preferences.end();
             currentState = STATE_WIFI_SETTINGS_MENU;
-            wifiAutoConnect();
+            wifiAutoConnect(true);
             return;
         }
         drawPasswordInputScreen();
@@ -403,7 +396,7 @@ void handlePasswordInput() {
 
 void handleFactoryResetConfirmInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleFactoryResetConfirmInput() called");
+    debugMessage("DEBUG:", "handleFactoryResetConfirmInput() called");
     #endif
     if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
@@ -411,6 +404,7 @@ void handleFactoryResetConfirmInput() {
         if (!status.word.empty()) key = status.word[0];
         if (key == 'y' || key == 'Y') {
             factoryReset();
+            return;
         }
         currentState = STATE_SETTINGS_MENU;
         drawScreen();
@@ -419,7 +413,7 @@ void handleFactoryResetConfirmInput() {
 
 void handleKeyboardTestInput() {
     #ifdef DEBUG_MODE
-    Serial.println("DEBUG: handleKeyboardTestInput() called");
+    debugMessage("DEBUG:", "handleKeyboardTestInput() called");
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 

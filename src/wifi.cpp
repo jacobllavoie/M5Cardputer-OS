@@ -3,27 +3,33 @@
 #include "ui.h"
 #include "ota.h"
 
-void wifiAutoConnect() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: wifiAutoConnect() called");
-    #endif
-    displayMessage("Checking WiFi...", "", 500);
+void wifiAutoConnect(bool returnToWifiMenu = false) {
+    debugMessage("DEBUG:", "wifiAutoConnect() called");
+    // displayMessage("Checking WiFi...", "", 500);
     preferences.begin("wifi-creds", true);
     String ssid = preferences.getString("ssid", "");
     String password = preferences.getString("password", "");
     preferences.end();
 
     if (ssid.length() > 0) {
-        displayMessage("Connecting to:", ssid, 1000);
+    // displayMessage("Connecting to:", ssid, 1000);
         WiFi.begin(ssid.c_str(), password.c_str());
 
         int try_count = 0;
         while (WiFi.status() != WL_CONNECTED && try_count < 20) {
-            delay(500);
+            M5Cardputer.update();
+            String dots = String((try_count % 4) + 1, '.');
+            // displayMessage("Connecting to:", ssid + dots, 250);
+            delay(250);
             try_count++;
         }
 
         if (WiFi.status() == WL_CONNECTED) {
+            // displayMessage("Connected to:", ssid, 1000);
+            if (returnToWifiMenu) {
+                currentState = STATE_WIFI_SETTINGS_MENU;
+                drawScreen();
+            }
         } else {
             displayMessage("Connection Failed", "", 1500);
         }
@@ -33,33 +39,29 @@ void wifiAutoConnect() {
 }
 
 void showWifiStatus() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: showWifiStatus() called");
-    #endif
+    debugMessage("DEBUG:", "showWifiStatus() called");
     if (WiFi.status() == WL_CONNECTED) {
-        displayMessage("Connected to: " + WiFi.SSID(), "IP: " + WiFi.localIP().toString());
+    // displayMessage("Connected to: " + WiFi.SSID(), "IP: " + WiFi.localIP().toString());
     } else {
         displayMessage("WiFi Disconnected");
     }
 }
 
 void scanWifiNetworks() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: scanWifiNetworks() called");
-    #endif
+    debugMessage("DEBUG:", "scanWifiNetworks() called");
     displayMessage("Scanning...", "", 100);
-    Serial.println("Scanning for WiFi networks...");
+    debugMessage("DEBUG:", "Scanning for WiFi networks...");
     int n = WiFi.scanNetworks();
     scanned_networks.clear();
     
     if (n == 0) {
         displayMessage("No networks found");
-        Serial.println("No networks found.");
+    debugMessage("DEBUG:", "No networks found.");
     } else {
-        Serial.println(String(n) + " networks found:");
+    debugMessage("DEBUG:", String(n) + " networks found:");
         for (int i = 0; i < n; ++i) {
             String ssid = WiFi.SSID(i);
-            Serial.println("  " + String(i + 1) + ": " + ssid);
+            debugMessage("DEBUG:", String(i + 1) + ": " + ssid);
             if (ssid != "" && std::find(scanned_networks.begin(), scanned_networks.end(), ssid) == scanned_networks.end()) {
                 scanned_networks.push_back(ssid);
             }
@@ -71,9 +73,7 @@ void scanWifiNetworks() {
 }
 
 void disconnectWifi() {
-    #ifdef DEBUG_MODE
-    Serial.println("DEBUG: disconnectWifi() called");
-    #endif
+    debugMessage("DEBUG:", "disconnectWifi() called");
     displayMessage("Disconnecting...", "", 1000);
     WiFi.disconnect(true);
     preferences.begin("wifi-creds", false);
