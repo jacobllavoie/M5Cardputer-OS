@@ -61,4 +61,22 @@ void showSDCardInfo() {
         displayMessage("SD Card Not Mounted");
     }
 }
+
+bool mountSDforMSC() {
+    debugMessage("DEBUG:", "mountSDforMSC() called");
+    if (isSdCardMounted) {
+        return true;
+    }
+    SPI.begin(SD_SPI_SCK_PIN, SD_SPI_MISO_PIN, SD_SPI_MOSI_PIN);
+    if (SD.begin(SD_SPI_CS_PIN, SPI, 4000000)) {
+        isSdCardMounted = true;
+        debugMessage("DEBUG:", "SD Card mounted successfully for MSC");
+        return true;
+    } else {
+        displayMessage("SD Card Mount Failed!");
+        debugMessage("DEBUG:", "SD Card mount for MSC failed");
+        isSdCardMounted = false;
+        return false;
+    }
+}
 #endif

@@ -58,10 +58,6 @@ enum AppState {
     #ifdef ENABLE_OTA
     STATE_OTA_MODE,
     #endif
-
-    #ifdef ENABLE_USB_MSC
-    STATE_USB_MSC_ACTIVE,
-    #endif
 };
 extern AppState currentState;
 

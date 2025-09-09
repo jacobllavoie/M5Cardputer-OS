@@ -15,9 +15,6 @@
 #ifdef ENABLE_OTA
 #include "ota.h"
 #endif
-#ifdef ENABLE_USB_MSC
-#include "usb_msc.h"
-#endif
 
 void factoryReset() {
     debugMessage("DEBUG:", "factoryReset() called");
@@ -271,8 +268,9 @@ void handleSettingsMenuInput() {
         #endif
         #ifdef ENABLE_USB_MSC
         else if (strcmp(selected, "USB MSC") == 0) {
-            currentState = STATE_USB_MSC_ACTIVE;
-            startMSC();
+            if (startMSC()) {
+                currentState = STATE_USB_MSC_ACTIVE;
+            }
         }
         #endif
         else if (strcmp(selected, "Factory Reset") == 0) currentState = STATE_FACTORY_RESET_CONFIRM; 
