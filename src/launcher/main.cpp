@@ -1,3 +1,6 @@
+// M5Cardputer-OS main application
+// Copyright (c) 2025 Jacob Lavoie
+// Licensed under the MIT license. See LICENSE file in the project root for details.
 #include <M5CardputerOS_core.h>
 #include <esp_system.h>
 #include <ui.h>
