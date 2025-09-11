@@ -1,7 +1,7 @@
 # M5Cardputer-OS
 
-[![GitHub license](https://img.shields.io/github/license/your-username/your-repo-name.svg)](https://github.com/your-username/your-repo-name/blob/main/LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/your-username/your-repo-name.svg?style=social)](https://github.com/your-username/your-repo-name)
+[![GitHub license](https://img.shields.io/github/license/jacobllavoie/M5Cardputer-OS.svg)](https://github.com/jacobllavoie/M5Cardputer-OS/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/jacobllavoie/M5Cardputer-OS.svg?style=social)](https://github.com/jacobllavoie/M5Cardputer-OS)
 
 This repository contains a custom, lightweight operating system for the M5Stack Cardputer. It's built on the Arduino framework and is designed to be a flexible platform for running standalone applications from an SD card.
 
@@ -66,3 +66,7 @@ The project is organized into several key directories:
 
 ## License
 (Add license information here, e.g., MIT License)
+
+## Acknowledgments
+
+The Radio app was inspired by and adapted from the [M5Cardputer_WebRadio](https://github.com/cyberwisk/m5cardputer_webradio) project by cyberwisk. Thank you for the excellent foundation.
