@@ -45,8 +45,8 @@ static ArduinoFFT<double>* FFT_ptr = nullptr;
 
 static uint16_t prev_y[(FFT_SIZE / 2) + 1];
 static uint16_t peak_y[(FFT_SIZE / 2) + 1];
-static int header_height = 51; // Altura do FFT
-static bool fft_enabled = false; // Flag para habilitar/desabilitar FFT
+static int header_height = 51; 
+static bool fft_enabled = false;
 
 static int16_t fft_audio_buffer[FFT_SIZE];
 static volatile uint16_t fft_buffer_idx = 0;
@@ -438,31 +438,6 @@ void setup() {
 
   M5Cardputer.begin(cfg, true);
   Serial.println("DEBUG: After M5.begin()"); // Keep debug statement
-
-    // Get the reason for the last reset
-  esp_reset_reason_t reset_reason = esp_reset_reason();
-
-  // IFTTT Logic:
-  // IF the reset was caused by Power On OR the external Reset Button...
-  if (reset_reason == ESP_RST_POWERON || reset_reason == ESP_RST_EXT) {
-    Serial.println("Boot reason: Power-on or Reset Button. Checking for launcher...");
-
-    // Attempt to initialize the SD card first
-    if (mountSD()) {
-      // THEN run the loadLauncher function
-      loadLauncher();
-    } else {
-      Serial.println("SD card initialization failed. Cannot load launcher.");
-    }
-    // Note: loadLauncher() will restart the ESP on success,
-    // so code below this point will not run in that case.
-  }
-
-  // ... if the reset reason was something else (like a software restart
-  // from a successful update), the code will just continue here.
-  
-  Serial.println("Boot reason: Software or other. Starting normal operation.");
-
   led.begin();
   led.setBrightness(255);  // Brightness (0-255)
   led.show();  // Initialize off
@@ -571,6 +546,14 @@ void loop() {
 
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     char key = 0; // Initialize key to null character
+
+    if (status.fn && !status.word.empty() && status.word[0] == '`') {
+        const esp_partition_t *launcher_partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+        if (launcher_partition != NULL) {
+          esp_ota_set_boot_partition(launcher_partition);
+          esp_restart();
+        }
+    }
 
     if (!status.word.empty()) {
       key = status.word[0]; // Get the first character from the word vector

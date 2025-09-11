@@ -140,7 +140,7 @@ void loop() {
         if (target == VOLTAGE) active_input = VOLTAGE_INPUT;
         else if (target == CURRENT) active_input = CURRENT_INPUT;
         else if (target == RESISTANCE) active_input = RESISTANCE_INPUT;
-      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ESC)) {
+      } else if (status.fn && !status.word.empty() && status.word[0] == '`') { // <-- This is the updated line
         // Return to launcher
         const esp_partition_t *launcher_partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
         if (launcher_partition != NULL) {
