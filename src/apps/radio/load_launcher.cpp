@@ -2,6 +2,7 @@
 #include <SD.h>
 #include <Update.h>
 #include <esp_partition.h>
+#include "esp_ota_ops.h" // <-- ADD THIS LINE
 
 #if defined(ENABLE_SD_CARD)
 void loadLauncher() {
