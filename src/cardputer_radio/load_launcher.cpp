@@ -1,3 +1,8 @@
+#include <Arduino.h>
+#include <SD.h>
+#include <Update.h>
+#include <esp_partition.h>
+
 #if defined(ENABLE_SD_CARD)
 void loadLauncher() {
     const char* appPath = "/launcher.bin"; // Hardcoded path to the launcher
