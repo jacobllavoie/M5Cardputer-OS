@@ -1,7 +1,8 @@
 #ifdef ENABLE_WEB_SERVER
-#include "globals.h"
+#include <M5CardputerOS_core.h>
 #include <WebServer.h>
-#include "ui.h"
+#include <ui.h>
+#include "web_server.h"
 
 WebServer server(80);
 File uploadFile;

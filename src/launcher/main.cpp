@@ -1,20 +1,20 @@
-#include "globals.h"
+#include <M5CardputerOS_core.h>
 #include <esp_system.h>
-#include "ui.h"
-#include "input.h"
+#include <ui.h>
+#include <input.h>
 
 // --- Conditional Includes ---
 #ifdef ENABLE_SD_CARD
-#include "sd_card.h"
+#include <sd_card.h>
 #endif
 #ifdef ENABLE_WIFI
-#include "wifi.h"
+#include <wifi.h>
 #endif
 #ifdef ENABLE_WEB_SERVER
-#include "web_server.h"
+#include <web_server.h>
 #endif
 #ifdef ENABLE_OTA
-#include "ota.h"
+#include <ota.h>
 #endif
 
 // Timer for battery status refresh
@@ -54,8 +54,7 @@ void setup() {
 
     // Update SD card status only in boot list
     #ifdef ENABLE_SD_CARD
-    mountSD();
-    if (isSdCardMounted) {
+    if (mountSD()) {
         sdStatus = "mounted";
         if (!SD.exists("/apps")) {
             debugMessage("DEBUG:", "Creating /apps dir on SD card");

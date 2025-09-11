@@ -1,5 +1,5 @@
+#include <M5CardputerOS_core.h>
 #include <vector>
-#include "globals.h"
 #define COLOR_BLUE 0x001F
 #define COLOR_RED 0xF800
 #define COLOR_GREEN 0x07E0
@@ -59,51 +59,11 @@ int wifiScanScrollOffset = 0;
 const int MENU_VISIBLE_COUNT = 5;
 const int MENU_LINE_HEIGHT = 22;
 const float MENU_FONT_SIZE = 0.8;
-float menuTextSize = 0.8;
-#include "globals.h"
+
+#include <M5CardputerOS_core.h>
 #include "ui.h"
 
-#ifdef ENABLE_SETTINGS_PERSISTENCE
-Preferences preferences;
-#endif
-// float menuTextSize = 0.8;
-AppState currentState = STATE_MAIN_MENU;
-#ifdef ENABLE_SD_CARD
-bool isSdCardMounted = false;
-#endif
-#ifdef ENABLE_WIFI
-std::vector<String> scanned_networks;
-int selected_network_index = 0;
-String selected_ssid = "";
-String password_buffer = "";
-#endif
-String lastKeyPressed = "None";
-const char* mainMenuItems[] = { "Apps", "Keyboard Test", "Option C", "Settings" };
-const int numMainMenuItems = sizeof(mainMenuItems) / sizeof(mainMenuItems[0]);
-int currentMainMenuSelection = 0;
 
-// --- CORRECTED MENU DEFINITION ---
-// We now use a vector that we will build dynamically.
-std::vector<const char*> settingsMenuItems;
-int numSettingsMenuItems = 0;
-int currentSettingsSelection = 0;
-// --- END OF CORRECTION ---
-
-const char* displayMenuItems[] = { "Text Size", "Back" };
-const int numDisplayMenuItems = sizeof(displayMenuItems) / sizeof(displayMenuItems[0]);
-int currentDisplaySelection = 0;
-#ifdef ENABLE_SD_CARD
-const char* sdCardMenuItems[] = { "SD Card Info", "Mount/Unmount SD", "Back" };
-const int numSdCardMenuItems = sizeof(sdCardMenuItems) / sizeof(sdCardMenuItems[0]);
-int currentSdCardSelection = 0;
-#endif
-#ifdef ENABLE_WIFI
-const char* wifiMenuItems[] = { "Status", "Scan for Networks", "Web Server", "Disconnect", "Back" };
-const int numWifiMenuItems = sizeof(wifiMenuItems) / sizeof(wifiMenuItems[0]);
-int currentWifiSelection = 0;
-#endif
-std::vector<String> app_list;
-int currentAppSelection = 0;
 
 
 // --- NEW FUNCTION TO BUILD MENUS ---

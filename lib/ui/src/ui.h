@@ -1,9 +1,9 @@
-void drawStartupScreen(String serialStatus, String sdStatus, String wifiStatus, String ip, bool showWelcome);
 #ifndef UI_H
 #define UI_H
 
-#include <M5Cardputer.h>
+#include <M5CardputerOS_core.h>
 
+void drawStartupScreen(String serialStatus, String sdStatus, String wifiStatus, String ip, bool showWelcome);
 void initializeMenus();
 
 void drawScreen();

@@ -1,5 +1,5 @@
-#ifndef GLOBALS_H
-#define GLOBALS_H
+#ifndef M5CARDPUTEROS_CORE_H
+#define M5CARDPUTEROS_CORE_H
 
 #include "M5Cardputer.h"
 #include <SPI.h>
@@ -57,6 +57,7 @@ enum AppState {
 
     #ifdef ENABLE_OTA
     STATE_OTA_MODE,
+    STATE_APP_LOADING,
     #endif
 };
 extern AppState currentState;
@@ -104,6 +105,8 @@ extern const char* wifiMenuItems[];
 extern const int numWifiMenuItems;
 extern int currentWifiSelection;
 #endif
+
+void loadAndRunApp(const String& appPath);
 
 // --- Color Scheme ---
 #define BACKGROUND_COLOR BLACK

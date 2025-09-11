@@ -1,7 +1,8 @@
 #ifdef ENABLE_WIFI
-#include "globals.h"
-#include "ui.h"
-#include "ota.h"
+#include <M5CardputerOS_core.h>
+#include <ui.h>
+#include <ota.h>
+#include "wifi.h"
 
 #include <Preferences.h>
 
@@ -13,7 +14,7 @@ void saveWifiCredentials(const String& ssid, const String& password) {
     prefs.end();
 }
 
-void wifiAutoConnect(bool returnToWifiMenu = false) {
+void wifiAutoConnect(bool returnToWifiMenu) {
     debugMessage("DEBUG:", "wifiAutoConnect() called");
     // displayMessage("Checking WiFi...", "", 500);
     Preferences prefs;

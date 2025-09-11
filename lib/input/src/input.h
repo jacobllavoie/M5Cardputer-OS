@@ -1,6 +1,8 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include <M5CardputerOS_core.h>
+
 void handleInput();
 void handleMainMenuInput();
 void handleKeyboardTestInput();

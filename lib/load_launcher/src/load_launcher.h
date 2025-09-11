@@ -2,6 +2,8 @@
 #ifndef LOAD_LAUNCHER_H
 #define LOAD_LAUNCHER_H
 
+#include <M5CardputerOS_core.h> // New include
+
 void loadLauncher();
 
 #endif // LOAD_LAUNCHER_H

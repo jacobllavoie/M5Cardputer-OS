@@ -1,40 +1,41 @@
 #ifdef ENABLE_SD_CARD
-#include <Arduino.h> // Must be first for String and other Arduino types
-#include "sd_card.h" // Include its own header
-#include <SPI.h> // For SPI object
-#include <SD.h>  // For SD object
+#include <Arduino.h>
+#include "sd_card.h"
+#include <SPI.h>
+#include <SD.h>
+
+
 
 #define SD_SPI_SCK_PIN  40
 #define SD_SPI_MISO_PIN 39
 #define SD_SPI_MOSI_PIN 14
 #define SD_SPI_CS_PIN   12
 
-void mountSD() {
-    if (!isSdCardMounted) {
-        SPI.begin(SD_SPI_SCK_PIN, SD_SPI_MISO_PIN, SD_SPI_MOSI_PIN);
-        bool mounted = false;
-        long freqs[] = {4000000, 10000000, 25000000};
-        for (int i = 0; i < 3; ++i) {
-            if (SD.begin(SD_SPI_CS_PIN, SPI, freqs[i])) {
-                mounted = true;
-                break;
-            }
-        }
-        if (!mounted) {
-            isSdCardMounted = false;
-        } else {
+bool mountSD() {
+    if (isSdCardMounted) {
+        return true;
+    }
+
+    SPI.begin(SD_SPI_SCK_PIN, SD_SPI_MISO_PIN, SD_SPI_MOSI_PIN);
+    long freqs[] = {4000000, 10000000, 25000000};
+    for (int i = 0; i < 3; ++i) {
+        if (SD.begin(SD_SPI_CS_PIN, SPI, freqs[i])) {
             isSdCardMounted = true;
+            return true;
         }
     }
+    isSdCardMounted = false;
+    return false;
 }
 
 void unmountSD() {
     if (isSdCardMounted) {
+        SD.end();
         isSdCardMounted = false;
     }
 }
 
-void showSDCardInfo() {
+String getSDCardInfo() {
     if (isSdCardMounted) {
         uint64_t cardSize = SD.cardSize() / (1024 * 1024);
         String cardType = "";
@@ -45,6 +46,9 @@ void showSDCardInfo() {
             case CARD_UNKNOWN:
             default: cardType = "Unknown"; break;
         }
+        return "Type: " + cardType + ", Size: " + String(cardSize) + "MB";
+    } else {
+        return "SD Card Not Mounted";
     }
 }
 

@@ -2,6 +2,8 @@
 #ifndef WIFI_H
 #define WIFI_H
 
+#include <M5CardputerOS_core.h>
+
 void wifiAutoConnect(bool returnToWifiMenu = false);
 void showWifiStatus();
 void scanWifiNetworks();

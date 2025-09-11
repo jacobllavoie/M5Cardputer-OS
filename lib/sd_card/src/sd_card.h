@@ -6,9 +6,10 @@
 
 extern bool isSdCardMounted;
 
-void mountSD();
+bool mountSD();
 void unmountSD();
-void showSDCardInfo();
+String getSDCardInfo(); // Returns a string with info, or an error message.
+bool mountSDforMSC();
 
 #endif
 #endif

@@ -1,19 +1,19 @@
-#include "globals.h"
-#include "ui.h"
+#include <M5CardputerOS_core.h>
+#include <ui.h>
 #include "input.h"
 
 // --- Conditional Includes ---
 #ifdef ENABLE_WIFI
-#include "wifi.h"
+#include <wifi.h>
 #endif
 #ifdef ENABLE_SD_CARD
-#include "sd_card.h"
+#include <sd_card.h>
 #endif
 #ifdef ENABLE_WEB_SERVER
-#include "web_server.h"
+#include <web_server.h>
 #endif
 #ifdef ENABLE_OTA
-#include "ota.h"
+#include <ota.h>
 #endif
 
 void factoryReset() {
@@ -330,8 +330,21 @@ void handleSdCardMenuInput() {
     if (M5Cardputer.Keyboard.isKeyPressed('.')) { currentSdCardSelection = (currentSdCardSelection + 1) % numSdCardMenuItems; }
     if (status.enter) { 
         const char* selected = sdCardMenuItems[currentSdCardSelection]; 
-        if (strcmp(selected, "SD Card Info") == 0) { showSDCardInfo(); } 
-        else if (strcmp(selected, "Mount/Unmount SD") == 0) { if (isSdCardMounted) unmountSD(); else mountSD(); } 
+        if (strcmp(selected, "SD Card Info") == 0) {
+            displayMessage(getSDCardInfo());
+        } 
+        else if (strcmp(selected, "Mount/Unmount SD") == 0) { 
+            if (isSdCardMounted) {
+                unmountSD();
+                displayMessage("SD Card Unmounted");
+            } else {
+                if (mountSD()) {
+                    displayMessage("SD Card Mounted");
+                } else {
+                    displayMessage("SD Card Mount Failed!");
+                }
+            }
+        } 
         else if (strcmp(selected, "Back") == 0) { currentState = STATE_SETTINGS_MENU; } 
     }
     drawScreen();

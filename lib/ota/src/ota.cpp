@@ -1,7 +1,7 @@
 #ifdef ENABLE_OTA
-#include "globals.h"
-#include "ui.h"
-#include "web_server.h"
+#include <M5CardputerOS_core.h>
+#include <ui.h>
+#include <web_server.h>
 #include "ota.h"
 #include <ArduinoOTA.h>
 

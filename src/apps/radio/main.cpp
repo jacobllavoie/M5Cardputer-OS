@@ -16,10 +16,10 @@
 
 #include <Audio.h> // ESP32-audioI2S version
 #include <Adafruit_NeoPixel.h>
-#include "sd_card.h" // Include SD card functions from M5Cardputer-OS
-#include "load_launcher.h" // Include loadLauncher function
+#include <sd_card.h> // Include SD card functions from M5Cardputer-OS
+#include <load_launcher.h> // Include loadLauncher function
 
-bool isSdCardMounted = false; // Global flag for SD card status
+
 #ifdef ENABLE_FFT
 #include <arduinoFFT.h>
 #endif
@@ -295,7 +295,7 @@ void loadDefaultStations() {
 }
 
 void mergeRadioStations() {
-  if (!SD.begin()) {
+  if (!isSdCardMounted) {
     led.setPixelColor(0, led.Color(255, 0, 0));
     led.show();
     M5Cardputer.Display.drawString("/station_list.txt ", 20, 30);
@@ -448,7 +448,7 @@ void setup() {
     Serial.println("Boot reason: Power-on or Reset Button. Checking for launcher...");
 
     // Attempt to initialize the SD card first
-    if (SD.begin()) {
+    if (mountSD()) {
       // THEN run the loadLauncher function
       loadLauncher();
     } else {
@@ -524,7 +524,15 @@ void setup() {
 
   M5Cardputer.Display.fillScreen(BLACK);
 
-  mountSD(); // Initialize SD card
+  if (!mountSD()) {
+    M5Cardputer.Display.clear();
+    M5Cardputer.Display.setTextColor(0xFF0000);
+    M5Cardputer.Display.setTextSize(2);
+    M5Cardputer.Display.setCursor(10, 10);
+    M5Cardputer.Display.println("SD Card Mount Failed!");
+    delay(2000);
+    // Decide what to do here. Maybe just continue without SD functionality.
+  }
 
   audio.stopSong();
   mergeRadioStations();

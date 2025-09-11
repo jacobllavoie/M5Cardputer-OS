@@ -1,4 +1,6 @@
 #include <M5Cardputer.h>
+#include <esp_ota_ops.h>
+#include <esp_system.h>
 
 // Define variables for Ohm's Law
 float voltage = 0.0;
@@ -138,6 +140,13 @@ void loop() {
         if (target == VOLTAGE) active_input = VOLTAGE_INPUT;
         else if (target == CURRENT) active_input = CURRENT_INPUT;
         else if (target == RESISTANCE) active_input = RESISTANCE_INPUT;
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ESC)) {
+        // Return to launcher
+        const esp_partition_t *launcher_partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+        if (launcher_partition != NULL) {
+          esp_ota_set_boot_partition(launcher_partition);
+          esp_restart();
+        }
       } else if (M5Cardputer.Keyboard.isKeyPressed('c')) {
          // Calculate
         voltage = voltage_str.toFloat();

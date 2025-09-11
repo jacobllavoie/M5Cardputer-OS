@@ -4,6 +4,9 @@
 #include <esp_partition.h>
 #include "esp_ota_ops.h" // <-- ADD THIS LINE
 
+#include <M5CardputerOS_core.h> // New include
+#include "load_launcher.h" // New include
+
 #if defined(ENABLE_SD_CARD)
 void loadLauncher() {
     const char* appPath = "/launcher.bin"; // Hardcoded path to the launcher
