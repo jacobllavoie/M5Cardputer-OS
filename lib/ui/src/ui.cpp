@@ -8,7 +8,7 @@
 
 void drawStartupScreen(String serialStatus, String sdStatus, String wifiStatus, String ip, bool showWelcome) {
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(0.5f);
     M5Cardputer.Display.setTextDatum(top_left);
     int y = 20;
@@ -117,7 +117,7 @@ void drawBatteryStatus() {
     float voltage = M5.Power.getBatteryVoltage() / 1000.0;
     String status = String(percentage) + "% " + String(voltage, 2) + "V";
     M5Cardputer.Display.setTextDatum(top_right);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(0.7);
     M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
@@ -132,7 +132,7 @@ void drawMainMenu() {
     drawBatteryStatus(); 
     
     M5Cardputer.Display.setTextDatum(middle_left);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(MENU_FONT_SIZE);
     M5Cardputer.Display.setTextSize(menuTextSize);
     // Scroll logic
@@ -153,7 +153,7 @@ void drawAppsMenu() {
     #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(middle_left);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(MENU_FONT_SIZE);
     M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.drawString("Select App:", 20, 15);
@@ -178,7 +178,7 @@ void drawSettingsMenu() {
     #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(middle_left);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(MENU_FONT_SIZE);
     M5Cardputer.Display.setTextSize(menuTextSize);
     if (currentSettingsSelection < settingsMenuScrollOffset) settingsMenuScrollOffset = currentSettingsSelection;
@@ -197,19 +197,25 @@ void drawDisplaySettingsMenu() {
     #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(middle_left);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
-    M5Cardputer.Display.setTextSize(MENU_FONT_SIZE);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(menuTextSize);
+
     if (currentDisplaySelection < displayMenuScrollOffset) displayMenuScrollOffset = currentDisplaySelection;
     if (currentDisplaySelection >= displayMenuScrollOffset + MENU_VISIBLE_COUNT) displayMenuScrollOffset = currentDisplaySelection - MENU_VISIBLE_COUNT + 1;
+    
     for (int i = displayMenuScrollOffset; i < numDisplayMenuItems && i < displayMenuScrollOffset + MENU_VISIBLE_COUNT; i++) {
         int y = 30 + (i - displayMenuScrollOffset) * MENU_LINE_HEIGHT;
         String itemText = displayMenuItems[i];
-        if (itemText == "Text Size") {
+        
+        if (String(itemText) == "Text Size") {
             itemText = String("Text Size: < ") + String(menuTextSize, 1) + String(" >");
+        } else if (String(itemText) == "Font") {
+            itemText = String("Font: < ") + String(availableFonts[currentFontSelection].name) + String(" >");
         }
+        
         if (i == currentDisplaySelection) M5Cardputer.Display.setTextColor(HIGHLIGHT_TEXT_COLOR, HIGHLIGHT_COLOR);
         else M5Cardputer.Display.setTextColor(TEXT_COLOR);
+        
         M5Cardputer.Display.drawString(itemText, 20, y);
     }
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
@@ -221,7 +227,7 @@ void drawSdCardMenu() {
     #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(middle_left);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(MENU_FONT_SIZE);
     M5Cardputer.Display.setTextSize(menuTextSize);
     if (currentSdCardSelection < sdCardMenuScrollOffset) sdCardMenuScrollOffset = currentSdCardSelection;
@@ -246,7 +252,7 @@ void drawWifiSettingsMenu() {
     #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(middle_left);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(MENU_FONT_SIZE);
     M5Cardputer.Display.setTextSize(menuTextSize);
     if (currentWifiSelection < wifiMenuScrollOffset) wifiMenuScrollOffset = currentWifiSelection;
@@ -265,7 +271,7 @@ void drawWifiScanResults() {
     #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(middle_left);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(MENU_FONT_SIZE);
     M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.drawString("Select a Network:", 10, 5);
@@ -283,7 +289,7 @@ void drawPasswordInputScreen() {
     #ifdef DEBUG_MODE
     debugMessage("DEBUG:", "drawPasswordInputScreen() called");
     #endif
-    M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_left); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
+    M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_left); M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font); M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.drawString("Password for:", 10, 20); M5Cardputer.Display.drawString(selected_ssid, 10, 50); String stars = ""; for (size_t i = 0; i < password_buffer.length(); i++) { stars += "*"; }
     M5Cardputer.Display.drawString("> " + stars + "_", 10, 80);
 }
@@ -292,7 +298,7 @@ void drawFactoryResetConfirmScreen() {
     #ifdef DEBUG_MODE
     debugMessage("DEBUG:", "drawFactoryResetConfirmScreen() called");
     #endif
-    M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_center); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
+    M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_center); M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font); M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.setTextColor(WARNING_COLOR); M5Cardputer.Display.drawString("FACTORY RESET?", M5Cardputer.Display.width() / 2, 20); M5Cardputer.Display.drawString("ALL SAVED DATA WILL BE ERASED!", M5Cardputer.Display.width() / 2, 50);
     M5Cardputer.Display.setTextColor(WHITE); M5Cardputer.Display.drawString("Press 'Y' to confirm", M5Cardputer.Display.width() / 2, 90); M5Cardputer.Display.drawString("Any other key to cancel", M5Cardputer.Display.width() / 2, 115);
 }
@@ -301,7 +307,7 @@ void drawWebServerScreen() {
     #ifdef DEBUG_MODE
     debugMessage("DEBUG:", "drawWebServerScreen() called");
     #endif
-    M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_center); M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24); M5Cardputer.Display.setTextSize(menuTextSize);
+    M5Cardputer.Display.fillScreen(BACKGROUND_COLOR); M5Cardputer.Display.setTextDatum(top_center); M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font); M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
     #ifdef ENABLE_WIFI
     if (WiFi.status() == WL_CONNECTED) {
@@ -337,7 +343,7 @@ void drawOtaScreen() {
     #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(top_center);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(menuTextSize);
     M5Cardputer.Display.setTextColor(TEXT_COLOR);
 
@@ -360,7 +366,7 @@ void drawKeyboardTestScreen() {
     #endif
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
     M5Cardputer.Display.setTextDatum(top_center);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(1.0);
     M5Cardputer.Display.drawString("Keyboard Test", M5Cardputer.Display.width() / 2, 20);
     M5Cardputer.Display.drawString("Last Key Pressed:", M5Cardputer.Display.width() / 2, 50);

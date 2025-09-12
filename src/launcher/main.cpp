@@ -5,6 +5,7 @@
 #include <esp_system.h>
 #include <ui.h>
 #include <input.h>
+#include <settings_manager.h>
 
 // --- Conditional Includes ---
 #ifdef ENABLE_SD_CARD
@@ -44,13 +45,16 @@ void setup() {
 
     // Update serial status only in boot list
     #ifdef ENABLE_SETTINGS_PERSISTENCE
-    if (preferences.begin("disp-settings", true)) {
-        menuTextSize = preferences.getFloat("fontSize", 0.8f);
-        preferences.end();
-        serialStatus = "initialized";
-    } else {
-        serialStatus = "error";
+    settings_init();
+    menuTextSize = (float)settings_get_font_size();
+    String savedFontName = settings_get_font_name();
+    for (int i = 0; i < numAvailableFonts; ++i) {
+        if (savedFontName == availableFonts[i].name) {
+            currentFontSelection = i;
+            break;
+        }
     }
+    serialStatus = "initialized";
     drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
     delay(700);
     #endif
@@ -72,9 +76,7 @@ void setup() {
 
     // Update WiFi status only in boot list
     #ifdef ENABLE_WIFI
-    preferences.begin("wifi", true);
-    String ssid = preferences.getString("ssid", "");
-    preferences.end();
+    String ssid = settings_get_wifi_ssid();
     if (ssid.length() > 0) {
         wifiStatus = "connecting";
         drawStartupScreen(serialStatus, sdStatus, wifiStatus, ip, false);
@@ -99,7 +101,7 @@ void setup() {
 
     // Show WELCOME screen
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
-    M5Cardputer.Display.setFont(&fonts::Orbitron_Light_24);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(1.5f);
     M5Cardputer.Display.setTextDatum(middle_center);
     M5Cardputer.Display.setTextColor(COLOR_CYAN, BACKGROUND_COLOR);

@@ -24,13 +24,18 @@
 #include <Preferences.h>
 #endif
 
-// --- Objects ---
-#ifdef ENABLE_SETTINGS_PERSISTENCE
-extern Preferences preferences;
-#endif
-
 // --- UI Configuration ---
 extern float menuTextSize;
+
+// New Font Configuration
+struct FontInfo {
+    const char* name;
+    const GFXfont* font;
+};
+
+extern const FontInfo availableFonts[];
+extern const int numAvailableFonts;
+extern int currentFontSelection; // Index for availableFonts array
 
 // --- Application State ---
 enum AppState {

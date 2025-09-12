@@ -4,24 +4,17 @@
 #include <ota.h>
 #include "wifi.h"
 
-#include <Preferences.h>
+#include <settings_manager.h>
 
 void saveWifiCredentials(const String& ssid, const String& password) {
-    Preferences prefs;
-    prefs.begin("wifi", false); // read/write
-    prefs.putString("ssid", ssid);
-    prefs.putString("pass", password);
-    prefs.end();
+    settings_save_wifi_credentials(ssid, password);
 }
 
 void wifiAutoConnect(bool returnToWifiMenu) {
     debugMessage("DEBUG:", "wifiAutoConnect() called");
     // displayMessage("Checking WiFi...", "", 500);
-    Preferences prefs;
-    prefs.begin("wifi", true); // read-only
-    String ssid = prefs.getString("ssid", "");
-    String password = prefs.getString("pass", "");
-    prefs.end();
+    String ssid = settings_get_wifi_ssid();
+    String password = settings_get_wifi_password();
 
     if (ssid.length() > 0) {
     // displayMessage("Connecting to:", ssid, 1000);
@@ -88,9 +81,7 @@ void disconnectWifi() {
     debugMessage("DEBUG:", "disconnectWifi() called");
     displayMessage("Disconnecting...", "", 1000);
     WiFi.disconnect(true);
-    preferences.begin("wifi-creds", false);
-    preferences.clear();
-    preferences.end();
+    settings_save_wifi_credentials("", ""); // Clear saved credentials
     displayMessage("Disconnected & Forgotten");
 }
 #endif

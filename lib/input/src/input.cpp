@@ -1,6 +1,7 @@
 #include <M5CardputerOS_core.h>
 #include <ui.h>
 #include "input.h"
+#include <settings_manager.h>
 
 // --- Conditional Includes ---
 #ifdef ENABLE_WIFI
@@ -20,14 +21,12 @@ void factoryReset() {
     debugMessage("DEBUG:", "factoryReset() called");
     displayMessage("Resetting...", "Erasing all settings.", 1500);
     #ifdef ENABLE_WIFI
-    preferences.begin("wifi-creds", false);
-    preferences.clear();
-    preferences.end();
+    settings_save_wifi_credentials("", ""); // Clear WiFi credentials
     #endif
     #ifdef ENABLE_SETTINGS_PERSISTENCE
-    preferences.begin("disp-settings", false);
-    preferences.clear();
-    preferences.end();
+    settings_init(); // Initialize settings manager before clearing
+    settings_save_font_size(1); // Reset to default font size
+    settings_save_font_name("default"); // Reset to default font name
     #endif
     displayMessage("Reset Complete.", "Rebooting...", 2000);
     ESP.restart();
@@ -285,19 +284,29 @@ void handleDisplaySettingsInput() {
     #endif
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     bool sizeChanged = false;
+    bool fontChanged = false;
 
     if (M5Cardputer.Keyboard.isKeyPressed(';')) { currentDisplaySelection = (currentDisplaySelection - 1 + numDisplayMenuItems) % numDisplayMenuItems; }
     if (M5Cardputer.Keyboard.isKeyPressed('.')) { currentDisplaySelection = (currentDisplaySelection + 1) % numDisplayMenuItems; }
     
     if (strcmp(displayMenuItems[currentDisplaySelection], "Text Size") == 0) { 
-        if (M5Cardputer.Keyboard.isKeyPressed('a')) { 
+        if (M5Cardputer.Keyboard.isKeyPressed(',')) { 
             menuTextSize = max(0.5f, menuTextSize - 0.1f); 
             sizeChanged = true;
         } 
-        if (M5Cardputer.Keyboard.isKeyPressed('d')) { 
+        if (M5Cardputer.Keyboard.isKeyPressed('/')) { 
             menuTextSize = min(2.0f, menuTextSize + 0.1f); 
             sizeChanged = true;
         } 
+    } else if (strcmp(displayMenuItems[currentDisplaySelection], "Font") == 0) {
+        if (M5Cardputer.Keyboard.isKeyPressed(',')) { // Left
+            currentFontSelection = (currentFontSelection - 1 + numAvailableFonts) % numAvailableFonts;
+            fontChanged = true;
+        }
+        if (M5Cardputer.Keyboard.isKeyPressed('/')) { // Right
+            currentFontSelection = (currentFontSelection + 1) % numAvailableFonts;
+            fontChanged = true;
+        }
     }
     
     if (status.enter) { 
@@ -308,12 +317,10 @@ void handleDisplaySettingsInput() {
 
     #ifdef ENABLE_SETTINGS_PERSISTENCE
     if (sizeChanged) {
-        if (preferences.begin("disp-settings", false)) {
-            preferences.putFloat("fontSize", menuTextSize);
-            preferences.end();
-        } else {
-            displayMessage("Error:", "Failed to save settings!", 1000);
-        }
+        settings_save_font_size((int)(menuTextSize * 10)); // Save as int, multiply by 10 to preserve one decimal place
+    }
+    if (fontChanged) {
+        settings_save_font_name(availableFonts[currentFontSelection].name);
     }
     #endif
 

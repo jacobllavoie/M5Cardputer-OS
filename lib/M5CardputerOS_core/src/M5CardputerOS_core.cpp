@@ -1,8 +1,17 @@
 #include "M5CardputerOS_core.h"
 
-#ifdef ENABLE_SETTINGS_PERSISTENCE
-Preferences preferences;
-#endif
+// Removed Preferences preferences; definition as it's now managed by settings_manager
+
+// --- Font Definitions ---
+const FontInfo availableFonts[] = {
+    {"Orbitron", &fonts::Orbitron_Light_24},
+    {"Mono Oblique", &fonts::FreeMonoOblique9pt7b}
+    // You can add more fonts here if they are available
+};
+const int numAvailableFonts = sizeof(availableFonts) / sizeof(availableFonts[0]);
+int currentFontSelection = 0; // Default to the first font
+// --------------------
+
 float menuTextSize = 0.8;
 AppState currentState = STATE_MAIN_MENU;
 #ifdef ENABLE_SD_CARD
@@ -23,7 +32,7 @@ std::vector<const char*> settingsMenuItems;
 int numSettingsMenuItems = 0;
 int currentSettingsSelection = 0;
 
-const char* displayMenuItems[] = { "Text Size", "Back" };
+const char* displayMenuItems[] = { "Text Size", "Font", "Back" };
 const int numDisplayMenuItems = sizeof(displayMenuItems) / sizeof(displayMenuItems[0]);
 int currentDisplaySelection = 0;
 #ifdef ENABLE_SD_CARD

@@ -1,6 +1,11 @@
+// This radio application is adapted from the M5Cardputer_WebRadio project.
+// Original author: cyberwisk
+// Original repository: https://github.com/cyberwisk/m5cardputer_webradio
+
 // Converted from WebRadio_with_ESP8266Audio.ino for PlatformIO
+
 // Dependencies: M5Unified, ESP8266Audio
-// Place your WiFi credentials below
+// Place your WiFi credentials below unless using NVS storage
 #define WIFI_SSID "SET YOUR WIFI SSID"
 #define WIFI_PASS "SET YOUR WIFI PASS"
 
@@ -12,7 +17,7 @@
 #include <SD.h>
 #include <Update.h>
 #include <SPI.h> // Include SPI for SD card
-#include <Preferences.h> // For NVS WiFi credentials
+#include <Preferences.h> // For NVS
 
 #include <Audio.h> // ESP32-audioI2S version
 #include <Adafruit_NeoPixel.h>
@@ -437,13 +442,11 @@ void setup() {
     M5Cardputer.Speaker.config(spk_cfg);
 
   M5Cardputer.begin(cfg, true);
+
   Serial.println("DEBUG: After M5.begin()"); // Keep debug statement
   led.begin();
   led.setBrightness(255);  // Brightness (0-255)
   led.show();  // Initialize off
-
-  M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setFont(&fonts::FreeMonoOblique9pt7b);
 
   // WiFi connection logic (from your original code)
   M5Cardputer.Display.println("Connecting to WiFi");
@@ -456,7 +459,12 @@ void setup() {
   prefs.begin("wifi", true); // read-only
   String ssid = prefs.getString("ssid", "");
   String pass = prefs.getString("pass", "");
+  prefs.begin("disp-settings", true); // Open preferences in read-only mode
+  float menuTextSize = prefs.getFloat("fontSize", 1.0f); // Default to 1.0 if not found
   prefs.end();
+
+  M5Cardputer.Display.setRotation(1);
+  M5Cardputer.Display.setFont(&fonts::FreeMonoOblique9pt7b);
 
   if (ssid.length() > 0) {
       WiFi.begin(ssid.c_str(), pass.c_str());

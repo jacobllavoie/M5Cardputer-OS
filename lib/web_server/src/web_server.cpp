@@ -83,7 +83,7 @@ function loadFiles(dir = '/') {
             tbody.innerHTML = '';
             if (dir !== '/') {
                 tbody.innerHTML += `<tr>
-                    <td colspan="3"><button onclick="loadFiles('${dir.substring(0, dir.lastIndexOf('/')) || '/'}')">⬅️ Up</button></td>
+                    <td colspan="3"><button onclick="loadFiles('${dir.substring(0, dir.lastIndexOf('/')) || '/'}')">.. Up</button></td>
                 </tr>`;
             }
             data.forEach(file => {
@@ -266,7 +266,14 @@ void handleFileUpload(){
     debugMessage("DEBUG:", "handleFileUpload() called");
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
-        String filename = "/" + upload.filename;
+        String dir = "/";
+        if (server.hasArg("dir")) {
+            dir = server.arg("dir");
+        }
+        String filename = dir + "/" + upload.filename;
+        if (filename.startsWith("//")) {
+            filename = filename.substring(1);
+        }
     debugMessage("DEBUG:", "Upload START: " + filename);
 
         if(SD.exists(filename)){
