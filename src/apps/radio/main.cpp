@@ -18,12 +18,13 @@
 #include <Update.h>
 #include <SPI.h> // Include SPI for SD card
 #include <Preferences.h> // For NVS
-#include <settings_manager.h>
 
 #include <Audio.h> // ESP32-audioI2S version
 #include <Adafruit_NeoPixel.h>
 #include <sd_card.h> // Include SD card functions from M5Cardputer-OS
 #include <load_launcher.h> // Include loadLauncher function
+#include <settings_manager.h>
+#include <M5CardputerOS_core.h>
 
 
 #ifdef ENABLE_FFT
@@ -51,7 +52,7 @@ static ArduinoFFT<double>* FFT_ptr = nullptr;
 
 static uint16_t prev_y[(FFT_SIZE / 2) + 1];
 static uint16_t peak_y[(FFT_SIZE / 2) + 1];
-static int header_height = 51; 
+static int header_height = 51;
 static bool fft_enabled = false;
 
 static int16_t fft_audio_buffer[FFT_SIZE];
@@ -376,7 +377,7 @@ void audio_showstation(const char *showstation) {
         limitedInfo[24] = '\0';  // Ensure null-termination
         M5Cardputer.Display.fillRect(0, 15, 240, 15, TFT_BLACK);
         M5Cardputer.Display.drawString(limitedInfo, 0, 15);
-       
+
     }
 }
 
@@ -434,109 +435,106 @@ uint32_t generateRandomColor() {
 }
 
 void setup() {
-
-  auto cfg = M5.config();
-  auto spk_cfg = M5Cardputer.Speaker.config();
-    /// Increasing the sample_rate will improve the sound quality instead of increasing the CPU load.
-    spk_cfg.sample_rate = 128000; // default:64000 (64kHz)  e.g. 48000 , 50000 , 80000 , 96000 , 100000 , 128000 , 144000 , 192000 , 200000
+    auto cfg = M5.config();
+    auto spk_cfg = M5Cardputer.Speaker.config();
+    spk_cfg.sample_rate = 128000;
     spk_cfg.task_pinned_core = APP_CPU_NUM;
     M5Cardputer.Speaker.config(spk_cfg);
 
-  M5Cardputer.begin(cfg, true);
+    M5Cardputer.begin(cfg, true);
+    M5Cardputer.Display.setRotation(1);
 
-  Serial.println("DEBUG: After M5.begin()"); // Keep debug statement
-  led.begin();
-  led.setBrightness(255);  // Brightness (0-255)
-  led.show();  // Initialize off
+    // --- Load Global Settings ---
+    settings_init();
+    String ssid = settings_get_wifi_ssid();
+    String pass = settings_get_wifi_password();
+    float menuTextSize = (float)settings_get_font_size() / 10.0f;
+    String savedFontName = settings_get_font_name();
 
-  // WiFi connection logic (from your original code)
-  M5Cardputer.Display.println("Connecting to WiFi");
-  WiFi.disconnect();
-  WiFi.softAPdisconnect(true);
-  WiFi.mode(WIFI_STA);
+    for (int i = 0; i < numAvailableFonts; ++i) {
+        if (savedFontName == availableFonts[i].name) {
+            currentFontSelection = i;
+            break;
+        }
+    }
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
+    M5Cardputer.Display.setTextSize(menuTextSize);
+    // ---------------------------
 
-  // --- Load Font Settings ---
-  settings_init();
-  String ssid = settings_get_wifi_ssid();
-  String pass = settings_get_wifi_password();
-  float menuTextSize = (float)settings_get_font_size() / 10.0f;
-  String savedFontName = settings_get_font_name();
-  for (int i = 0; i < numAvailableFonts; ++i) {
-      if (savedFontName == availableFonts[i].name) {
-          currentFontSelection = i;
-          break;
-      }
-  }
-  // -----------------------------
+    led.begin();
+    led.setBrightness(255);
+    led.show();
 
-  M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
-  M5Cardputer.Display.setTextSize(menuTextSize);
+    // --- WiFi Connection ---
+    M5Cardputer.Display.println("Connecting to WiFi");
+    WiFi.disconnect();
+    WiFi.softAPdisconnect(true);
+    WiFi.mode(WIFI_STA);
 
-  if (ssid.length() > 0) {
-      WiFi.begin(ssid.c_str(), pass.c_str());
-  }
-  else {
-      // Fallback to defines if NVS is empty
-      WiFi.begin(WIFI_SSID, WIFI_PASS);
-  }
-  int wifiTries = 0;
-  while (WiFi.status() != WL_CONNECTED && wifiTries < 60) {
-      M5Cardputer.Display.print(".");
-      delay(100);
-      wifiTries++;
-  }
-  if (WiFi.status() == WL_CONNECTED) {
-      M5Cardputer.Display.clear();
-      M5Cardputer.Display.setTextColor(0x00FF00);
-      M5Cardputer.Display.setCursor(10, 10);
-      M5Cardputer.Display.println("WiFi Connected!");
-      M5Cardputer.Display.println("IP: " + WiFi.localIP().toString());
-      Serial.println("WiFi connected, IP: " + WiFi.localIP().toString());
-  }
-  else {
-      M5Cardputer.Display.clear();
-      M5Cardputer.Display.setTextColor(0xFF0000);
-      M5Cardputer.Display.setCursor(10, 10);
-      M5Cardputer.Display.println("WiFi Failed!");
-      Serial.println("WiFi failed to connect.");
-      delay(2000);
-      return;
-  }
-  M5Cardputer.Display.clear();
-  M5Cardputer.Display.setTextSize(menuTextSize);
+    if (ssid.length() > 0) {
+        WiFi.begin(ssid.c_str(), pass.c_str());
+    } else {
+        WiFi.begin(WIFI_SSID, WIFI_PASS);
+    }
 
-  audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
-  audio.setVolume(map(curVolume, 0, 255, 0, 21));
-  audio.setBalance(0);
+    int wifiTries = 0;
+    while (WiFi.status() != WL_CONNECTED && wifiTries < 60) {
+        M5Cardputer.Display.print(".");
+        delay(100);
+        wifiTries++;
+    }
 
-  M5Cardputer.Display.fillScreen(BLACK);
-
-  if (!mountSD()) {
     M5Cardputer.Display.clear();
-    M5Cardputer.Display.setTextColor(0xFF0000);
-    M5Cardputer.Display.setCursor(10, 10);
-    M5Cardputer.Display.println("SD Card Mount Failed!");
-    delay(2000);
-    // Decide what to do here. Maybe just continue without SD functionality.
-  }
+    // Re-apply font settings after clearing the display
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
+    M5Cardputer.Display.setTextSize(menuTextSize);
 
-  audio.stopSong();
-  mergeRadioStations();
-  Playfile();
-  showStation();
-  Serial.print("Audio Sample Rate: ");
-  Serial.println(audio.getSampleRate());
+    if (WiFi.status() == WL_CONNECTED) {
+        M5Cardputer.Display.setTextColor(0x00FF00);
+        M5Cardputer.Display.setCursor(10, 10);
+        M5Cardputer.Display.println("WiFi Connected!");
+        M5Cardputer.Display.println("IP: " + WiFi.localIP().toString());
+        Serial.println("WiFi connected, IP: " + WiFi.localIP().toString());
+        delay(2000); // Pause to show connection status
+    } else {
+        M5Cardputer.Display.setTextColor(0xFF0000);
+        M5Cardputer.Display.setCursor(10, 10);
+        M5Cardputer.Display.println("WiFi Failed!");
+        Serial.println("WiFi failed to connect.");
+        delay(2000);
+        return;
+    }
+
+    M5Cardputer.Display.clear();
+    // Re-apply font settings again after clearing
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
+    M5Cardputer.Display.setTextSize(menuTextSize);
+    M5Cardputer.Display.setTextColor(WHITE); // Reset text color for the app
+
+    // --- Audio and SD Card Setup ---
+    audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
+    audio.setVolume(map(curVolume, 0, 255, 0, 21));
+    audio.setBalance(0);
+
+    if (!mountSD()) {
+        M5Cardputer.Display.setTextColor(0xFF0000);
+        M5Cardputer.Display.println("SD Card Mount Failed!");
+        delay(2000);
+    }
+
+    audio.stopSong();
+    mergeRadioStations();
+    Playfile();
+    showStation();
+
 #ifdef ENABLE_FFT
-  FFT_ptr = new ArduinoFFT<double>(vReal, vImag, FFT_SIZE, audio.getSampleRate()); // Initialize FFT object
-  if (FFT_ptr == nullptr) {
-    Serial.println("FFT_ptr allocation failed!");
-  } else {
-    Serial.println("FFT_ptr allocated successfully.");
-  }
-  toggleFFT();
+    FFT_ptr = new ArduinoFFT<double>(vReal, vImag, FFT_SIZE, audio.getSampleRate());
+    if (FFT_ptr != nullptr) {
+        toggleFFT();
+    }
 #endif
 }
+
 
 void loop() {
   audio.loop();

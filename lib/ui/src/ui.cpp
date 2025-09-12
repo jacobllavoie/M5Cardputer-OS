@@ -8,8 +8,10 @@
 
 void drawStartupScreen(String serialStatus, String sdStatus, String wifiStatus, String ip, bool showWelcome) {
     M5Cardputer.Display.fillScreen(BACKGROUND_COLOR);
-    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
-    M5Cardputer.Display.setTextSize(0.5f);
+    M5Cardputer.Display.setFont(&fonts::FreeMono9pt7b); // <-- ADD THIS LINE
+    M5Cardputer.Display.setTextSize(0.8); 
+    // M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
+    // M5Cardputer.Display.setTextSize(0.5f);
     M5Cardputer.Display.setTextDatum(top_left);
     int y = 20;
     int lineSpacing = 18;
