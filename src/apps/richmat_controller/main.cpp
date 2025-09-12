@@ -21,21 +21,55 @@ static BLEClient* pClient;
 static BLEAdvertisedDevice* myDevice;
 static BLEAddress* pServerAddress = nullptr;
 
-// --- Bed Commands (from richmat.py) ---
-const uint8_t CMD_STOP[] =      {0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_HEAD_UP[] =   {0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_HEAD_DOWN[] = {0x01, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_FEET_UP[] =   {0x01, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_FEET_DOWN[] = {0x01, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_FLAT[] =      {0x01, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00};
+// --- Bed Commands (from richmat.py and community findings) ---
+// Motor Controls
+const uint8_t CMD_STOP[] =              {0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_HEAD_UP[] =           {0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_HEAD_DOWN[] =         {0x01, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_FEET_UP[] =           {0x01, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_FEET_DOWN[] =         {0x01, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-// Map to associate names with commands
+// Preset Positions
+const uint8_t CMD_FLAT[] =              {0x01, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_ZERO_G[] =            {0x01, 0x01, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_ANTI_SNORE[] =        {0x01, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_LOUNGE[] =            {0x01, 0x01, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+// Massage Controls
+const uint8_t CMD_MASSAGE_ALL_OFF[] =   {0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_MASSAGE_HEAD_UP[] =   {0x01, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_MASSAGE_HEAD_DOWN[] = {0x01, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_MASSAGE_FEET_UP[] =   {0x01, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_MASSAGE_FEET_DOWN[] = {0x01, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_MASSAGE_WAVE_UP[] =   {0x01, 0x02, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t CMD_MASSAGE_WAVE_DOWN[] = {0x01, 0x02, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+// Light Controls
+const uint8_t CMD_LIGHT_TOGGLE[] =      {0x01, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+
+// Vector to associate names with commands for the UI
 std::vector<std::pair<String, const uint8_t*>> commands = {
+    // Motor
     {"Head Up", CMD_HEAD_UP},
     {"Head Down", CMD_HEAD_DOWN},
     {"Feet Up", CMD_FEET_UP},
     {"Feet Down", CMD_FEET_DOWN},
-    {"Go Flat", CMD_FLAT}
+    // Presets
+    {"Go Flat", CMD_FLAT},
+    {"Zero G", CMD_ZERO_G},
+    {"Anti-Snore", CMD_ANTI_SNORE},
+    {"Lounge", CMD_LOUNGE},
+    // Massage
+    {"Massage Head +", CMD_MASSAGE_HEAD_UP},
+    {"Massage Head -", CMD_MASSAGE_HEAD_DOWN},
+    {"Massage Feet +", CMD_MASSAGE_FEET_UP},
+    {"Massage Feet -", CMD_MASSAGE_FEET_DOWN},
+    {"Massage Wave +", CMD_MASSAGE_WAVE_UP},
+    {"Massage Wave -", CMD_MASSAGE_WAVE_DOWN},
+    {"Massage Off", CMD_MASSAGE_ALL_OFF},
+    // Light
+    {"Toggle Light", CMD_LIGHT_TOGGLE}
 };
 
 // --- UI State ---
@@ -215,7 +249,10 @@ void loop() {
             }
         } else { // Key is RELEASED
             if (connected) {
-                sendCommand(CMD_STOP);
+                // For presets and toggles, we don't want to send STOP on release
+                if (commands[selectedCommandIndex].first.indexOf("Up") != -1 || commands[selectedCommandIndex].first.indexOf("Down") != -1) {
+                    sendCommand(CMD_STOP);
+                }
                 statusMessage = "Connected";
             }
         }
