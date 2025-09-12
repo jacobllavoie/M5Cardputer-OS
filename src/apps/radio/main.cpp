@@ -489,7 +489,6 @@ void setup() {
   if (WiFi.status() == WL_CONNECTED) {
       M5Cardputer.Display.clear();
       M5Cardputer.Display.setTextColor(0x00FF00);
-      M5Cardputer.Display.setTextSize(2);
       M5Cardputer.Display.setCursor(10, 10);
       M5Cardputer.Display.println("WiFi Connected!");
       M5Cardputer.Display.println("IP: " + WiFi.localIP().toString());
@@ -498,7 +497,6 @@ void setup() {
   else {
       M5Cardputer.Display.clear();
       M5Cardputer.Display.setTextColor(0xFF0000);
-      M5Cardputer.Display.setTextSize(2);
       M5Cardputer.Display.setCursor(10, 10);
       M5Cardputer.Display.println("WiFi Failed!");
       Serial.println("WiFi failed to connect.");
@@ -517,7 +515,6 @@ void setup() {
   if (!mountSD()) {
     M5Cardputer.Display.clear();
     M5Cardputer.Display.setTextColor(0xFF0000);
-    M5Cardputer.Display.setTextSize(2);
     M5Cardputer.Display.setCursor(10, 10);
     M5Cardputer.Display.println("SD Card Mount Failed!");
     delay(2000);

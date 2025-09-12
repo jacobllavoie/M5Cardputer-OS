@@ -5,8 +5,10 @@
 // --- Font Definitions ---
 const FontInfo availableFonts[] = {
     {"Orbitron", &fonts::Orbitron_Light_24},
-    {"Mono Oblique", &fonts::FreeMonoOblique9pt7b}
-    // You can add more fonts here if they are available
+    {"Mono Oblique", &fonts::FreeMonoOblique9pt7b},
+    {"FreeMono", &fonts::FreeMono9pt7b},
+    {"FreeSans", &fonts::FreeSans9pt7b},
+    {"TomThumb", &fonts::TomThumb}
 };
 const int numAvailableFonts = sizeof(availableFonts) / sizeof(availableFonts[0]);
 int currentFontSelection = 0; // Default to the first font
