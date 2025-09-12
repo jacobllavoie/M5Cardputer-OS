@@ -6,20 +6,20 @@
 #include <BLEDevice.h>
 #include <vector>
 #include <map>
+#include "secrets.h" // Include the new secrets file
 
 // --- BLE Device Configuration ---
 static BLEUUID serviceUUID("0000fee9-0000-1000-8000-00805f9b34fb");
 static BLEUUID charUUID("d44bc439-abfd-45a2-b575-925416129600");
-// static BLEAddress *pServerAddress = new BLEAddress("57:4c:54:18:68:f4"); // No longer needed
 
 // --- BLE State Variables ---
 static boolean doConnect = false;
 static boolean connected = false;
-static boolean doScan = true; // Start by scanning
+static boolean doScan = false;
 static BLERemoteCharacteristic* pRemoteCharacteristic;
 static BLEClient* pClient;
 static BLEAdvertisedDevice* myDevice;
-
+static BLEAddress* pServerAddress = nullptr;
 
 // --- Bed Commands (from richmat.py) ---
 const uint8_t CMD_STOP[] =      {0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -42,7 +42,7 @@ std::vector<std::pair<String, const uint8_t*>> commands = {
 int selectedCommandIndex = 0;
 int scrollOffset = 0;
 const int VISIBLE_ITEMS = 5;
-String statusMessage = "Scanning...";
+String statusMessage = "Initializing...";
 
 // --- BLE Callbacks ---
 class MyClientCallback : public BLEClientCallbacks {
@@ -53,7 +53,11 @@ class MyClientCallback : public BLEClientCallbacks {
     void onDisconnect(BLEClient* pclient) {
         connected = false;
         statusMessage = "Disconnected";
+        #ifdef BED_MAC_ADDRESS
+        doConnect = true; // Reconnect to the saved MAC
+        #else
         doScan = true; // Scan again if disconnected
+        #endif
     }
 };
 
@@ -70,13 +74,22 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     }
 };
 
-
 // --- Function to Connect to the Bed ---
 bool connectToServer() {
     statusMessage = "Connecting...";
     pClient = BLEDevice::createClient();
     pClient->setClientCallbacks(new MyClientCallback());
-    pClient->connect(myDevice);
+    
+    bool success = false;
+    if (pServerAddress != nullptr) {
+        success = pClient->connect(*pServerAddress);
+    } else if (myDevice != nullptr) {
+        success = pClient->connect(myDevice);
+    }
+
+    if (!success) {
+        return false;
+    }
 
     BLERemoteService* pRemoteService = pClient->getService(serviceUUID);
     if (pRemoteService == nullptr) {
@@ -128,7 +141,7 @@ void drawUI() {
     if(connected) {
       M5Cardputer.Display.drawString("Hold Enter to Activate", M5Cardputer.Display.width()/2, M5Cardputer.Display.height() - 5);
     } else {
-      M5Cardputer.Display.drawString("Scanning for Bed...", M5Cardputer.Display.width()/2, M5Cardputer.Display.height() - 5);
+      M5Cardputer.Display.drawString(statusMessage, M5Cardputer.Display.width()/2, M5Cardputer.Display.height() - 5);
     }
     M5Cardputer.Display.setTextDatum(top_left);
 }
@@ -151,6 +164,16 @@ void setup() {
     M5Cardputer.Display.setTextSize(textSize);
 
     BLEDevice::init("");
+
+    #ifdef BED_MAC_ADDRESS
+    pServerAddress = new BLEAddress(BED_MAC_ADDRESS);
+    doConnect = true;
+    statusMessage = "Using saved MAC...";
+    #else
+    doScan = true;
+    statusMessage = "Scanning...";
+    #endif
+
     drawUI();
 }
 
@@ -167,11 +190,15 @@ void loop() {
     }
     
     if (doConnect) {
-        if (connectToServer()) {
-            // Success
-        } else {
-            statusMessage = "Connection failed";
+        if (!connectToServer()) {
+            #ifdef BED_MAC_ADDRESS
+            statusMessage = "Connection failed. Retrying...";
+            delay(2000);
+            doConnect = true; // Retry connection
+            #else
+            statusMessage = "Connection failed. Rescanning...";
             doScan = true; // Scan again if connection fails
+            #endif
         }
         doConnect = false;
         drawUI();
@@ -218,3 +245,4 @@ void loop() {
         drawUI();
     }
 }
+
