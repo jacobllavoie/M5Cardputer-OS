@@ -31,6 +31,13 @@
 #include <arduinoFFT.h>
 #endif
 
+#include <map>
+
+
+// A map to hold the scrolling state for different lines of text
+std::map<int, int> scroll_offsets;
+std::map<int, String> current_texts;
+
 Adafruit_NeoPixel led(1, 21, NEO_GRB + NEO_KHZ800);
 
 #define I2S_BCK 41
@@ -201,6 +208,35 @@ uint16_t curVolume = 115;
 unsigned long lastButtonPress = 0;
 const unsigned long DEBOUNCE_DELAY = 200;
 
+void drawScrollingText(int y, const char* text) {
+    if (!text || !*text) return;
+
+    // If the text for this line has changed, reset the scroll position
+    if (current_texts[y] != text) {
+        current_texts[y] = text;
+        scroll_offsets[y] = 0;
+    }
+
+    int text_width = M5Cardputer.Display.textWidth(text);
+    int screen_width = M5Cardputer.Display.width();
+
+    // Clear the area for the text
+    M5Cardputer.Display.fillRect(0, y, screen_width, 15, TFT_BLACK);
+
+    if (text_width > screen_width) {
+        // If the text is wider than the screen, scroll it
+        M5Cardputer.Display.drawString(text, scroll_offsets[y], y);
+        M5Cardputer.Display.drawString(text, scroll_offsets[y] + text_width + 20, y); // Draw a second copy for a seamless loop
+        scroll_offsets[y]--;
+        if (scroll_offsets[y] < (-text_width - 20)) {
+            scroll_offsets[y] = 0;
+        }
+    } else {
+        // If the text fits, just center it
+        M5Cardputer.Display.drawString(text, (screen_width - text_width) / 2, y);
+    }
+}
+
 void showVolume() {
   static uint8_t lastVolume = 0;
   uint8_t currentVolume = curVolume;
@@ -210,7 +246,7 @@ void showVolume() {
 
     int barHeight = 4; // Bar height
     M5Cardputer.Display.fillRect(0, 6, 200, 6, TFT_BLACK);
-    int barWidth = map(currentVolume, 0, 200, 0, M5Cardputer.Display.width());
+    int barWidth = ::map(currentVolume, 0, 200, 0, M5Cardputer.Display.width());
     if (barWidth < 200) {
       M5Cardputer.Display.fillRect(0, 6, barWidth, barHeight, 0xAAFFAA);
     }
@@ -247,7 +283,7 @@ void Playfile() {
 void volumeUp() {
   if (curVolume < 255) {
     curVolume = std::min(static_cast<uint16_t>(curVolume + 10), static_cast<uint16_t>(255));
-    audio.setVolume(map(curVolume, 0, 255, 0, 21));
+    audio.setVolume(::map(curVolume, 0, 255, 0, 21));
     showVolume();
   }
 }
@@ -255,7 +291,7 @@ void volumeUp() {
 void volumeDown() {
   if (curVolume > 0) {
     curVolume = std::max(static_cast<uint16_t>(curVolume - 10), static_cast<uint16_t>(0));
-    audio.setVolume(map(curVolume, 0, 255, 0, 21));
+    audio.setVolume(::map(curVolume, 0, 255, 0, 21));
     showVolume();
   }
 }
@@ -272,7 +308,7 @@ void volumeMute() {
     curVolume = prevVolume;
     isMuted = false;
   }
-  audio.setVolume(map(curVolume, 0, 255, 0, 21));
+  audio.setVolume(::map(curVolume, 0, 255, 0, 21));
   showVolume();
 }
 
@@ -371,62 +407,13 @@ void updateBatteryDisplay(unsigned long updateInterval) {
 void audio_id3data(const char *info){M5Cardputer.Display.drawString(info, 0, 33);}
 
 void audio_showstation(const char *showstation) {
-    if (showstation && *showstation) { // Check if showstation is not null and not empty
-        char limitedInfo[241];  // Buffer to hold limited string
-        strncpy(limitedInfo, showstation, 24);  // Copy up to 24 characters
-        limitedInfo[24] = '\0';  // Ensure null-termination
-        M5Cardputer.Display.fillRect(0, 15, 240, 15, TFT_BLACK);
-        M5Cardputer.Display.drawString(limitedInfo, 0, 15);
-
-    }
+    drawScrollingText(15, showstation);
 }
 
 void audio_showstreamtitle(const char *info) {
-  static int xOffset = 0;                  // Current X position of the text
-  static unsigned long lastUpdate = 0;     // Last update time
-  const int updateInterval = 100;          // Update interval in milliseconds
-
-  if (info && *info) {
-    int textWidth = M5Cardputer.Display.textWidth(info);  // Get the width of the text
-
-    // Scroll the text if it's wider than the display area
-    if (textWidth > (240 - 21)) { // 240 is display width, 21 is starting X
-      static unsigned long lastScrollStart = 0;
-      static bool scrolling = false;
-
-      if (!scrolling) {
-        // Initial pause before scrolling starts
-        if (millis() - lastUpdate > 2000) { // PAUSE_DURATION_MS
-          scrolling = true;
-          lastUpdate = millis();
-          lastScrollStart = millis();
-        }
-      } else {
-        if (millis() - lastUpdate > updateInterval) {
-          lastUpdate = millis();
-          xOffset--;  // Move text to the left
-
-          // If text has scrolled completely out of view
-          if (xOffset < -textWidth) {
-            // Pause after scrolling off-screen
-            if (millis() - lastScrollStart > (textWidth * updateInterval) + 2000) { // PAUSE_DURATION_MS
-              xOffset = 240; // Start from right edge of display
-              scrolling = false; // Reset for next cycle
-            }
-          }
-        }
-      }
-    } else {
-      xOffset = 21;  // Position text at SCROLL_START_X if it fits
-    }
-
-    // Clears the text area
-    M5Cardputer.Display.fillRect(0, 33, 240, 15, TFT_BLACK);
-    // Draws the text at the current position
-    M5Cardputer.Display.drawString(info, xOffset, 33);
-    // Decorative red line under the text
-    M5Cardputer.Display.fillRect(0, 50, 240, 1, TFT_RED);
-  }
+  drawScrollingText(33, info);
+  // Decorative red line under the text
+  M5Cardputer.Display.fillRect(0, 50, 240, 1, TFT_RED);
 }
 
 // Function to generate a random color
@@ -513,7 +500,7 @@ void setup() {
 
     // --- Audio and SD Card Setup ---
     audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
-    audio.setVolume(map(curVolume, 0, 255, 0, 21));
+    audio.setVolume(::map(curVolume, 0, 255, 0, 21));
     audio.setBalance(0);
 
     if (!mountSD()) {
