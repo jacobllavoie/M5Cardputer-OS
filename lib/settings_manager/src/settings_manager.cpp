@@ -9,10 +9,18 @@ void settings_init() {
 
 void settings_save_font_size(int size) {
     preferences.putInt("font_size", size);
+    preferences.end();
 }
 
 int settings_get_font_size() {
-    return preferences.getInt("font_size", 1); // Default font size is 1
+    preferences.begin("cardputer-os", true);
+    int fontSize = preferences.getInt("font_size", 1); // Default font size is 1
+    preferences.end();
+    return fontSize;
+}
+
+String settings_get_font_name() {
+    return preferences.getString("font_name", "Orbitron"); // Default font name
 }
 
 void settings_save_font_name(const String& name) {
