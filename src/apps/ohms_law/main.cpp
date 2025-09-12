@@ -2,12 +2,11 @@
 #include <esp_ota_ops.h>
 #include <esp_system.h>
 #include <Preferences.h>
+#include <settings_manager.h>
+#include <M5CardputerOS_core.h>
 
 // App-specific global to hold the loaded font size
 float appTextSize = 1.0f;
-
-// App-specific global to hold the font index
-int currentFontSelection = 0; // <-- ADD THIS LINE
 
 // Define variables for Ohm's Law
 float voltage = 0.0;
@@ -120,14 +119,20 @@ void drawScreen() {
 void setup() {
   M5Cardputer.begin();
   M5Cardputer.Display.setRotation(1);
-  // --- Load Font Size from NVS ---
-  Preferences prefs;
-  prefs.begin("disp-settings", true); // Open preferences in read-only mode
-  currentFontSelection = prefs.getInt("fontIndex", 0);
-  float menuTextSize = prefs.getFloat("fontSize", 1.0f); // Default to 1.0 if not found
-  prefs.end();
-  M5Cardputer.Display.setTextSize(menuTextSize);
+
+  // --- Load Font Settings ---
+  settings_init();
+  float savedTextSize = (float)settings_get_font_size() / 10.0f;
+  String savedFontName = settings_get_font_name();
+  for (int i = 0; i < numAvailableFonts; ++i) {
+      if (savedFontName == availableFonts[i].name) {
+          currentFontSelection = i;
+          break;
+      }
+  }
+  appTextSize = savedTextSize;
   // -----------------------------
+
   drawScreen();
 }
 

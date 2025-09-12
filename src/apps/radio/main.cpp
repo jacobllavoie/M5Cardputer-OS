@@ -18,6 +18,7 @@
 #include <Update.h>
 #include <SPI.h> // Include SPI for SD card
 #include <Preferences.h> // For NVS
+#include <settings_manager.h>
 
 #include <Audio.h> // ESP32-audioI2S version
 #include <Adafruit_NeoPixel.h>
@@ -454,17 +455,23 @@ void setup() {
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_STA);
 
-  // Load WiFi credentials from NVS
-  Preferences prefs;
-  prefs.begin("wifi", true); // read-only
-  String ssid = prefs.getString("ssid", "");
-  String pass = prefs.getString("pass", "");
-  prefs.begin("disp-settings", true); // Open preferences in read-only mode
-  float menuTextSize = prefs.getFloat("fontSize", 1.0f); // Default to 1.0 if not found
-  prefs.end();
+  // --- Load Font Settings ---
+  settings_init();
+  String ssid = settings_get_wifi_ssid();
+  String pass = settings_get_wifi_password();
+  float menuTextSize = (float)settings_get_font_size() / 10.0f;
+  String savedFontName = settings_get_font_name();
+  for (int i = 0; i < numAvailableFonts; ++i) {
+      if (savedFontName == availableFonts[i].name) {
+          currentFontSelection = i;
+          break;
+      }
+  }
+  // -----------------------------
 
   M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setFont(&fonts::FreeMonoOblique9pt7b);
+  M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
+  M5Cardputer.Display.setTextSize(menuTextSize);
 
   if (ssid.length() > 0) {
       WiFi.begin(ssid.c_str(), pass.c_str());
@@ -499,7 +506,7 @@ void setup() {
       return;
   }
   M5Cardputer.Display.clear();
-  M5Cardputer.Display.setTextSize(1); // Add this line
+  M5Cardputer.Display.setTextSize(menuTextSize);
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
   audio.setVolume(map(curVolume, 0, 255, 0, 21));
