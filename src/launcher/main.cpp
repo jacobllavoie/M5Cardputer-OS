@@ -46,7 +46,7 @@ void setup() {
     // Update serial status only in boot list
     #ifdef ENABLE_SETTINGS_PERSISTENCE
     settings_init();
-    menuTextSize = (float)settings_get_font_size();
+    menuTextSize = (float)settings_get_font_size() / 10.0f;
     String savedFontName = settings_get_font_name();
     for (int i = 0; i < numAvailableFonts; ++i) {
         if (savedFontName == availableFonts[i].name) {
