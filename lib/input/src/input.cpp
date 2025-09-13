@@ -95,9 +95,13 @@ void loadApp(String appName) {
     }
 
     displayMessage("Load complete.", "Rebooting into app...");
+    
+    // --- Turn off LED before rebooting ---
     pixel.clear(); // Set color to off
     pixel.show();  // Send update to the LED
     delay(50);     // Short delay to ensure the command goes through
+    // ------------------------------------
+
     ESP.restart();
 }
 #endif
@@ -198,11 +202,11 @@ void handleMainMenuInput() {
             lastKeyPressed = "None";
             currentState = STATE_KEYBOARD_TEST;
         } 
+        else if (strcmp(mainMenuItems[currentMainMenuSelection], "Meshtastic Chat") == 0) {
+            loadApp("meshtastic_chat.bin");
+        }
         else if (strcmp(mainMenuItems[currentMainMenuSelection], "Settings") == 0) { 
             currentState = STATE_SETTINGS_MENU; 
-        } 
-        else { 
-            displayMessage("You selected:", mainMenuItems[currentMainMenuSelection]); 
         } 
     }
     drawScreen();
@@ -476,3 +480,4 @@ void handleKeyboardTestInput() {
     
     drawScreen();
 }
+

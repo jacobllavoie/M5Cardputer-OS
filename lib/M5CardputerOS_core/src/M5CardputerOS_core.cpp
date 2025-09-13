@@ -31,7 +31,7 @@ String selected_ssid = "";
 String password_buffer = "";
 #endif
 String lastKeyPressed = "None";
-const char* mainMenuItems[] = { "Apps", "Keyboard Test", "Option C", "Settings" };
+const char* mainMenuItems[] = { "Apps", "Keyboard Test", "Meshtastic Chat", "Settings" };
 const int numMainMenuItems = sizeof(mainMenuItems) / sizeof(mainMenuItems[0]);
 int currentMainMenuSelection = 0;
 
