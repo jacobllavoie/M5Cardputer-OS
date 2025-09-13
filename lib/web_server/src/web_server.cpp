@@ -1,10 +1,10 @@
 #ifdef ENABLE_WEB_SERVER
+#include <M5CardputerOS_core.h>
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include "web_server.h"
 #include "sd_card.h"
-#include <M5CardputerOS_core.h>
 
 // --- Web Server and File Upload Variables ---
 AsyncWebServer server(80);
@@ -33,14 +33,23 @@ void handleFileList(AsyncWebServerRequest *request) {
         request->send(500, "application/json", "{\"error\":\"SD Card not mounted\"}");
         return;
     }
-    File root = SD.open("/");
+
+    String path = "/";
+    if (request->hasParam("dir")) {
+        path = request->getParam("dir")->value();
+    }
+
+    File root = SD.open(path);
+    if (!root || !root.isDirectory()) {
+        request->send(500, "application/json", "{\"error\":\"Directory not found\"}");
+        return;
+    }
+
     String json = "[";
     File file = root.openNextFile();
     while(file){
         if (json != "[") json += ",";
-        String fileName = String(file.name());
-        fileName.replace("/", ""); // Make sure file name is clean
-        json += "{\"name\":\"" + fileName + "\",\"size\":" + String(file.size()) + "}";
+        json += "{\"name\":\"" + String(file.name()) + "\",\"size\":" + String(file.size()) + ",\"isDir\":" + (file.isDirectory() ? "true" : "false") + "}";
         file.close();
         file = root.openNextFile();
     }
@@ -50,9 +59,8 @@ void handleFileList(AsyncWebServerRequest *request) {
 }
 
 void handleDelete(AsyncWebServerRequest *request) {
-    if (request->hasParam("file")) {
-        String fileName = "/" + request->getParam("file")->value();
-        if (SD.remove(fileName)) {
+    if (request->hasParam("path")) {
+        if (SD.remove(request->getParam("path")->value()) || SD.rmdir(request->getParam("path")->value())) {
             request->send(200, "text/plain", "Deleted");
         } else {
             request->send(500, "text/plain", "Delete failed");
@@ -62,9 +70,30 @@ void handleDelete(AsyncWebServerRequest *request) {
     }
 }
 
+void handleMove(AsyncWebServerRequest *request) {
+    if (request->hasParam("from") && request->hasParam("to")) {
+        if (SD.rename(request->getParam("from")->value(), request->getParam("to")->value())) {
+            request->send(200, "text/plain", "Moved/Renamed");
+        } else {
+            request->send(500, "text/plain", "Move/Rename failed");
+        }
+    } else {
+        request->send(400, "text/plain", "Bad Request");
+    }
+}
+
+
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+    String path = "/";
+     if (request->hasParam("dir")) {
+        path = request->getParam("dir")->value();
+    }
+    if (!path.endsWith("/")) {
+        path += "/";
+    }
+
     if (!index) {
-        String filePath = "/" + filename;
+        String filePath = path + filename;
         if(SD.exists(filePath)){
             SD.remove(filePath);
         }
@@ -89,6 +118,7 @@ void startWebServer() {
     server.on("/stats", HTTP_GET, handleStats);
     server.on("/files", HTTP_GET, handleFileList);
     server.on("/delete", HTTP_POST, handleDelete);
+    server.on("/move", HTTP_POST, handleMove); // Also used for rename
     server.on(
         "/upload", HTTP_POST,
         [](AsyncWebServerRequest *request) {
@@ -96,7 +126,7 @@ void startWebServer() {
         },
         handleUpload
     );
-
+    
     server.begin();
 }
 
