@@ -95,6 +95,9 @@ void loadApp(String appName) {
     }
 
     displayMessage("Load complete.", "Rebooting into app...");
+    pixel.clear(); // Set color to off
+    pixel.show();  // Send update to the LED
+    delay(50);     // Short delay to ensure the command goes through
     ESP.restart();
 }
 #endif

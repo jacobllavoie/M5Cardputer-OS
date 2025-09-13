@@ -27,8 +27,8 @@ unsigned long last_battery_update = 0;
 const int battery_update_interval = 2000;
 
 // --- Heartbeat LED Settings ---
-#define NEOPIXEL_PIN 21
-Adafruit_NeoPixel pixel(1, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+// #define NEOPIXEL_PIN 21
+// Adafruit_NeoPixel pixel(1, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 int heartbeat_speed = 10; // Lower is faster, higher is slower
 unsigned long last_heartbeat_update = 0;

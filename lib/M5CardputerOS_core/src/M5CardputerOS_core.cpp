@@ -1,5 +1,10 @@
 #include "M5CardputerOS_core.h"
 
+// --- NeoPixel Definition ---
+#define NEOPIXEL_PIN 21
+Adafruit_NeoPixel pixel(1, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+// --------------------
+
 // Removed Preferences preferences; definition as it's now managed by settings_manager
 
 // --- Font Definitions ---

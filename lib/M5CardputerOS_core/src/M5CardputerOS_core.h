@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include <Preferences.h>
 #include <vector>
+#include <Adafruit_NeoPixel.h>
 
 // --- Conditional Includes based on platformio.ini ---
 #ifdef ENABLE_SD_CARD
@@ -110,6 +111,8 @@ extern const char* wifiMenuItems[];
 extern const int numWifiMenuItems;
 extern int currentWifiSelection;
 #endif
+
+extern Adafruit_NeoPixel pixel;
 
 void loadAndRunApp(const String& appPath);
 
