@@ -1,0 +1,76 @@
+body { 
+    background-color: #000; 
+    color: #00ff00; 
+    font-family: 'monospace', 'Courier New', Courier, monospace; 
+    margin: 0; 
+    padding: 20px; 
+}
+.terminal-container { 
+    border: 2px solid #00ff00; 
+    padding: 20px; 
+    max-width: 800px; 
+    width: 100%; 
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.7); 
+    margin: auto; 
+}
+h1, h2, h3 { 
+    color: #00ff00; 
+    text-shadow: 0 0 5px #00ff00; 
+    margin-top: 0; 
+}
+.info-box, .stats-box { 
+    border: 1px solid #00ff00; 
+    padding: 10px; 
+    margin-bottom: 15px; 
+    background-color: rgba(0, 20, 0, 0.5); 
+}
+p { 
+    margin: 5px 0; 
+}
+.cursor { 
+    animation: blink 1s step-end infinite; 
+}
+@keyframes blink { 
+    from, to { visibility: hidden; } 
+    50% { visibility: visible; } 
+}
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+}
+th, td { 
+    border: 1px solid rgba(0, 255, 0, 0.5); 
+    padding: 8px; 
+    text-align: left; 
+}
+th { 
+    background-color: rgba(0, 100, 0, 0.7); 
+}
+a { 
+    color: #00ccff; 
+    text-decoration: none; 
+}
+a:hover { 
+    text-decoration: underline; 
+}
+button { 
+    background-color: #008000; 
+    color: #00ff00; 
+    border: 1px solid #00ff00; 
+    padding: 5px 10px; 
+    cursor: pointer; 
+    font-family: 'monospace'; 
+}
+.upload-section { 
+    margin-top: 20px; 
+    border: 1px solid #00ff00; 
+    padding: 10px; 
+    background-color: rgba(0, 20, 0, 0.5); 
+}
+input[type="file"]::file-selector-button { 
+    background-color: #008000; 
+    color: #00ff00; 
+    border: 1px solid #00ff00; 
+    padding: 5px 10px; 
+}
+

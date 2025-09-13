@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>M5Cardputer OS Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="terminal-container">
+        <header>
+            <h1>M5CARPPUTER-OS SYSTEM MONITOR</h1>
+            <div class="info-box">
+                <p>HOSTNAME: <span id="hostname">M5Cardputer-OS</span></p>
+                <p>IP: <span id="ipAddress">Loading...<span class="cursor">_</span></span></p>
+            </div>
+        </header>
+        <section class="stats-box">
+            <p>CPU UTILIZATION: <span id="cpuUtilization">...%<span class="cursor">_</span></span></p>
+            <p>BATTERY: <span id="batteryPercentage">...%<span class="cursor">_</span></span></p>
+            <p>SD CARD: <span id="sdCardUsage">...<span class="cursor">_</span></span></p>
+        </section>
+        <section class="file-manager">
+            <h2>FILE MANAGER</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Size (Bytes)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="fileList"></tbody>
+            </table>
+            <div class="upload-section">
+                <h3>Upload File</h3>
+                <form id="upload-form">
+                    <input type="file" name="uploadFile" id="uploadFile">
+                    <button type="submit">Upload</button>
+                </form>
+            </div>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+

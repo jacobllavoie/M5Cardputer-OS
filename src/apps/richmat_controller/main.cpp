@@ -1,285 +1,259 @@
 #include <M5Cardputer.h>
 #include <esp_ota_ops.h>
 #include <esp_system.h>
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <vector>
+#include <string>
+
 #include <M5CardputerOS_core.h>
 #include <settings_manager.h>
-#include <BLEDevice.h>
-#include <vector>
-#include <map>
-#include "secrets.h" // Include the new secrets file
 
-// --- BLE Device Configuration ---
-static BLEUUID serviceUUID("0000fee9-0000-1000-8000-00805f9b34fb");
-static BLEUUID charUUID("d44bc439-abfd-45a2-b575-925416129600");
+// Optional: Define your bed's MAC address in a separate secrets file
+#include "secrets.h"
 
-// --- BLE State Variables ---
-static boolean doConnect = false;
-static boolean connected = false;
-static boolean doScan = false;
-static BLERemoteCharacteristic* pRemoteCharacteristic;
-static BLEClient* pClient;
-static BLEAdvertisedDevice* myDevice;
-static BLEAddress* pServerAddress = nullptr;
+// --- BLE Service and Characteristic UUIDs ---
+#define RICHMAT_SERVICE_UUID        "0000fee9-0000-1000-8000-00805f9b34fb"
+#define RICHMAT_CHARACTERISTIC_UUID "d44bc439-abfd-45a2-b575-925416129600"
 
-// --- Bed Commands (from richmat.py and community findings) ---
-// Motor Controls
-const uint8_t CMD_STOP[] =              {0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_HEAD_UP[] =           {0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_HEAD_DOWN[] =         {0x01, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_FEET_UP[] =           {0x01, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_FEET_DOWN[] =         {0x01, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
+// --- App-Specific State Machine ---
+enum ControllerState {
+    STATE_SCANNING,
+    STATE_CONNECTING,
+    STATE_CONNECTED,
+    STATE_DISCONNECTED
+};
+ControllerState currentAppState = STATE_SCANNING; // Use our local state
 
-// Preset Positions
-const uint8_t CMD_FLAT[] =              {0x01, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_ZERO_G[] =            {0x01, 0x01, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_ANTI_SNORE[] =        {0x01, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_LOUNGE[] =            {0x01, 0x01, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00};
+// --- Global State ---
+float appTextSize = 1.0f;
+bool isSending = false;
+int currentCommand = 0;
+int scrollOffset = 0;
+const int VISIBLE_COMMANDS = 5;
+unsigned long lastSendTime = 0;
+const int SEND_INTERVAL = 150;
 
-// Massage Controls
-const uint8_t CMD_MASSAGE_ALL_OFF[] =   {0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_MASSAGE_HEAD_UP[] =   {0x01, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_MASSAGE_HEAD_DOWN[] = {0x01, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_MASSAGE_FEET_UP[] =   {0x01, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_MASSAGE_FEET_DOWN[] = {0x01, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_MASSAGE_WAVE_UP[] =   {0x01, 0x02, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00};
-const uint8_t CMD_MASSAGE_WAVE_DOWN[] = {0x01, 0x02, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00};
+BLEAdvertisedDevice* myDevice = nullptr;
+BLEClient* pClient = nullptr;
+BLERemoteCharacteristic* pCharacteristic = nullptr;
 
-// Light Controls
-const uint8_t CMD_LIGHT_TOGGLE[] =      {0x01, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
+// --- Bed Commands ---
+const uint8_t CMD_STOP[]          = {0x6E, 0x01, 0x00, 0x6E, 0xDD};
+const uint8_t CMD_HEAD_UP[]       = {0x6E, 0x01, 0x00, 0x24, 0x93};
+const uint8_t CMD_HEAD_DOWN[]     = {0x6E, 0x01, 0x00, 0x25, 0x94};
+// ... (rest of commands are the same)
+const uint8_t CMD_FOOT_UP[]       = {0x6E, 0x01, 0x00, 0x26, 0x95};
+const uint8_t CMD_FOOT_DOWN[]     = {0x6E, 0x01, 0x00, 0x27, 0x96};
+const uint8_t CMD_BOTH_UP[]       = {0x6E, 0x01, 0x00, 0x29, 0x98};
+const uint8_t CMD_BOTH_DOWN[]     = {0x6E, 0x01, 0x00, 0x2A, 0x99};
+const uint8_t CMD_FLAT[]          = {0x6E, 0x01, 0x00, 0x31, 0xA0};
+const uint8_t CMD_ZERO_G[]        = {0x6E, 0x01, 0x00, 0x45, 0xB4};
+const uint8_t CMD_TV[]            = {0x6E, 0x01, 0x00, 0x58, 0xC7};
+const uint8_t CMD_LIGHT[]         = {0x6E, 0x01, 0x00, 0x3C, 0xAB};
+const uint8_t CMD_MEMORY_RECALL[] = {0x6E, 0x01, 0x00, 0x2E, 0x9D};
+const uint8_t CMD_MEMORY_STORE[]  = {0x6E, 0x01, 0x00, 0x2B, 0x9A};
 
-
-// Vector to associate names with commands for the UI
 std::vector<std::pair<String, const uint8_t*>> commands = {
-    // Motor
-    {"Head Up", CMD_HEAD_UP},
-    {"Head Down", CMD_HEAD_DOWN},
-    {"Feet Up", CMD_FEET_UP},
-    {"Feet Down", CMD_FEET_DOWN},
-    // Presets
-    {"Go Flat", CMD_FLAT},
-    {"Zero G", CMD_ZERO_G},
-    {"Anti-Snore", CMD_ANTI_SNORE},
-    {"Lounge", CMD_LOUNGE},
-    // Massage
-    {"Massage Head +", CMD_MASSAGE_HEAD_UP},
-    {"Massage Head -", CMD_MASSAGE_HEAD_DOWN},
-    {"Massage Feet +", CMD_MASSAGE_FEET_UP},
-    {"Massage Feet -", CMD_MASSAGE_FEET_DOWN},
-    {"Massage Wave +", CMD_MASSAGE_WAVE_UP},
-    {"Massage Wave -", CMD_MASSAGE_WAVE_DOWN},
-    {"Massage Off", CMD_MASSAGE_ALL_OFF},
-    // Light
-    {"Toggle Light", CMD_LIGHT_TOGGLE}
+    {"Head Up", CMD_HEAD_UP}, {"Head Down", CMD_HEAD_DOWN},
+    {"Foot Up", CMD_FOOT_UP}, {"Foot Down", CMD_FOOT_DOWN},
+    {"Both Up", CMD_BOTH_UP}, {"Both Down", CMD_BOTH_DOWN},
+    {"Go Flat", CMD_FLAT}, {"Zero-G", CMD_ZERO_G},
+    {"TV Position", CMD_TV}, {"Toggle Light", CMD_LIGHT},
+    {"Recall Memory", CMD_MEMORY_RECALL}, {"Store Memory", CMD_MEMORY_STORE}
 };
 
-// --- UI State ---
-int selectedCommandIndex = 0;
-int scrollOffset = 0;
-const int VISIBLE_ITEMS = 5;
-String statusMessage = "Initializing...";
+// --- Function Prototypes ---
+void drawUI();
+bool connectToServer();
+void sendCommand(const uint8_t* cmd, size_t len);
+bool isMotorCommand(int commandIndex);
 
 // --- BLE Callbacks ---
 class MyClientCallback : public BLEClientCallbacks {
     void onConnect(BLEClient* pclient) {
-        connected = true;
-        statusMessage = "Connected!";
+        currentAppState = STATE_CONNECTED;
     }
     void onDisconnect(BLEClient* pclient) {
-        connected = false;
-        statusMessage = "Disconnected";
-        #ifdef BED_MAC_ADDRESS
-        doConnect = true; // Reconnect to the saved MAC
-        #else
-        doScan = true; // Scan again if disconnected
-        #endif
+        currentAppState = STATE_DISCONNECTED;
     }
 };
 
-// Callback for BLE Scan results
 class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     void onResult(BLEAdvertisedDevice advertisedDevice) {
-        // We have found a device, see if it contains the serviceUUID
-        if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(serviceUUID)) {
+        if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(BLEUUID(RICHMAT_SERVICE_UUID))) {
             BLEDevice::getScan()->stop();
             myDevice = new BLEAdvertisedDevice(advertisedDevice);
-            doConnect = true;
-            doScan = false;
+            currentAppState = STATE_CONNECTING;
         }
     }
 };
-
-// --- Function to Connect to the Bed ---
-bool connectToServer() {
-    statusMessage = "Connecting...";
-    pClient = BLEDevice::createClient();
-    pClient->setClientCallbacks(new MyClientCallback());
-    
-    bool success = false;
-    if (pServerAddress != nullptr) {
-        success = pClient->connect(*pServerAddress);
-    } else if (myDevice != nullptr) {
-        success = pClient->connect(myDevice);
-    }
-
-    if (!success) {
-        return false;
-    }
-
-    BLERemoteService* pRemoteService = pClient->getService(serviceUUID);
-    if (pRemoteService == nullptr) {
-        statusMessage = "Service not found";
-        return false;
-    }
-
-    pRemoteCharacteristic = pRemoteService->getCharacteristic(charUUID);
-    if (pRemoteCharacteristic == nullptr) {
-        statusMessage = "Characteristic not found";
-        return false;
-    }
-    return true;
-}
-
-// --- Function to Send a Command ---
-void sendCommand(const uint8_t* command) {
-    if (connected && pRemoteCharacteristic->canWrite()) {
-        pRemoteCharacteristic->writeValue((uint8_t*)command, 8, false);
-    }
-}
 
 // --- UI Drawing ---
 void drawUI() {
     M5Cardputer.Display.fillScreen(BLACK);
     M5Cardputer.Display.setTextDatum(top_left);
 
-    // Title and Status
-    M5Cardputer.Display.drawString("Smart Bed Remote", 10, 5);
-    M5Cardputer.Display.drawString("Status: " + statusMessage, 10, M5Cardputer.Display.height() - 30);
+    String statusText;
+    uint16_t statusColor;
+
+    switch(currentAppState) {
+        case STATE_SCANNING:
+            statusText = "Scanning..."; statusColor = YELLOW; break;
+        case STATE_CONNECTING:
+            statusText = "Bed Found. Connecting..."; statusColor = CYAN; break;
+        case STATE_CONNECTED:
+            statusText = "Connected"; statusColor = GREEN; break;
+        case STATE_DISCONNECTED:
+            statusText = "Disconnected"; statusColor = RED; break;
+    }
+
+    M5Cardputer.Display.setTextColor(statusColor);
+    M5Cardputer.Display.drawString("Status: " + statusText, 10, 5);
+    M5Cardputer.Display.setTextColor(WHITE);
     M5Cardputer.Display.drawFastHLine(0, 20, M5Cardputer.Display.width(), DARKGREY);
 
-    if (connected) {
-        // Draw command list only when connected
+    if (currentAppState == STATE_CONNECTED) {
         int lineHeight = 18;
-        for (int i = scrollOffset; i < (scrollOffset + VISIBLE_ITEMS) && i < commands.size(); i++) {
+        for (int i = scrollOffset; i < (scrollOffset + VISIBLE_COMMANDS) && i < commands.size(); i++) {
             int y_pos = 25 + (i - scrollOffset) * lineHeight;
-            if (i == selectedCommandIndex) {
-                M5Cardputer.Display.setTextColor(BLACK, WHITE);
-            } else {
-                M5Cardputer.Display.setTextColor(WHITE, BLACK);
-            }
+            bool isSelected = (i == currentCommand);
+            M5Cardputer.Display.setTextColor(isSelected ? BLACK : WHITE, isSelected ? WHITE : BLACK);
             M5Cardputer.Display.drawString(commands[i].first, 10, y_pos);
         }
+        M5Cardputer.Display.setTextColor(WHITE, BLACK);
+        M5Cardputer.Display.drawString("Up/Down: Select | Hold Enter: Activate", 5, M5Cardputer.Display.height() - 12);
+        if(isSending) {
+             M5Cardputer.Display.fillCircle(M5Cardputer.Display.width() - 15, M5Cardputer.Display.height() / 2, 5, RED);
+        }
     }
-    
-    M5Cardputer.Display.setTextColor(WHITE, BLACK);
-    M5Cardputer.Display.setTextDatum(bottom_center);
-    if(connected) {
-      M5Cardputer.Display.drawString("Hold Enter to Activate", M5Cardputer.Display.width()/2, M5Cardputer.Display.height() - 5);
-    } else {
-      M5Cardputer.Display.drawString(statusMessage, M5Cardputer.Display.width()/2, M5Cardputer.Display.height() - 5);
-    }
-    M5Cardputer.Display.setTextDatum(top_left);
 }
 
-// --- Main Setup and Loop ---
+// --- Setup ---
 void setup() {
     M5Cardputer.begin();
     M5Cardputer.Display.setRotation(1);
 
-    // Load global font settings
     settings_init();
-    float textSize = (float)settings_get_font_size() / 10.0f;
-    String fontName = settings_get_font_name();
+    appTextSize = (float)settings_get_font_size() / 10.0f;
+    String savedFontName = settings_get_font_name();
     for (int i = 0; i < numAvailableFonts; ++i) {
-        if (fontName == availableFonts[i].name) {
-            M5Cardputer.Display.setFont(availableFonts[i].font);
+        if (savedFontName == availableFonts[i].name) {
+            currentFontSelection = i;
             break;
         }
     }
-    M5Cardputer.Display.setTextSize(textSize);
+    M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
+    M5Cardputer.Display.setTextSize(appTextSize);
 
     BLEDevice::init("");
 
-    #ifdef BED_MAC_ADDRESS
-    pServerAddress = new BLEAddress(BED_MAC_ADDRESS);
-    doConnect = true;
-    statusMessage = "Using saved MAC...";
+    #ifdef BED_ADDRESS
+        myDevice = new BLEAdvertisedDevice();
+        myDevice->setAddress(BLEAddress(BED_ADDRESS));
+        currentAppState = STATE_CONNECTING;
     #else
-    doScan = true;
-    statusMessage = "Scanning...";
+        BLEScan* pBLEScan = BLEDevice::getScan();
+        pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+        pBLEScan->setActiveScan(true);
+        pBLEScan->start(10, false); // Non-blocking 10-second scan
     #endif
 
     drawUI();
 }
 
+// --- Main Loop ---
 void loop() {
     M5Cardputer.update();
 
-    if (doScan) {
-        statusMessage = "Scanning...";
-        drawUI();
-        BLEScan* pBLEScan = BLEDevice::getScan();
-        pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-        pBLEScan->setActiveScan(true);
-        pBLEScan->start(5, false); // Scan for 5 seconds
-    }
-    
-    if (doConnect) {
-        if (!connectToServer()) {
-            #ifdef BED_MAC_ADDRESS
-            statusMessage = "Connection failed. Retrying...";
-            delay(2000);
-            doConnect = true; // Retry connection
-            #else
-            statusMessage = "Connection failed. Rescanning...";
-            doScan = true; // Scan again if connection fails
-            #endif
+    if (currentAppState == STATE_CONNECTING) {
+        if (connectToServer()) {
+            // Success
+        } else {
+            currentAppState = STATE_DISCONNECTED; // Failed to connect
         }
-        doConnect = false;
         drawUI();
     }
-    
-    // --- Handle Keyboard Input ---
-    if (M5Cardputer.Keyboard.isChange()) {
-        Keyboard_Class::KeysState keys = M5Cardputer.Keyboard.keysState();
 
-         if (keys.enter) { // Key is PRESSED
-            if (connected) {
-                sendCommand(commands[selectedCommandIndex].second);
-                statusMessage = "Moving...";
+    if (currentAppState == STATE_CONNECTED) {
+        bool needsRedraw = false;
+        if (M5Cardputer.Keyboard.isChange()) {
+            if (M5Cardputer.Keyboard.isKeyPressed(';')) { // Up
+                currentCommand = (currentCommand - 1 + commands.size()) % commands.size();
+                needsRedraw = true;
             }
-        } else { // Key is RELEASED
-            if (connected) {
-                // For presets and toggles, we don't want to send STOP on release
-                if (commands[selectedCommandIndex].first.indexOf("Up") != -1 || commands[selectedCommandIndex].first.indexOf("Down") != -1) {
-                    sendCommand(CMD_STOP);
-                }
-                statusMessage = "Connected";
+            if (M5Cardputer.Keyboard.isKeyPressed('.')) { // Down
+                currentCommand = (currentCommand + 1) % commands.size();
+                needsRedraw = true;
             }
-        }
-
-        if (M5Cardputer.Keyboard.isKeyPressed(';')) { // Up
-            selectedCommandIndex = (selectedCommandIndex - 1 + commands.size()) % commands.size();
-        }
-        if (M5Cardputer.Keyboard.isKeyPressed('.')) { // Down
-            selectedCommandIndex = (selectedCommandIndex + 1) % commands.size();
+            if (needsRedraw) {
+                if (currentCommand < scrollOffset) scrollOffset = currentCommand;
+                if (currentCommand >= scrollOffset + VISIBLE_COMMANDS) scrollOffset = currentCommand - VISIBLE_COMMANDS + 1;
+            }
         }
         
-        // Adjust scroll offset
-        if (selectedCommandIndex < scrollOffset) {
-            scrollOffset = selectedCommandIndex;
-        }
-        if (selectedCommandIndex >= scrollOffset + VISIBLE_ITEMS) {
-            scrollOffset = selectedCommandIndex - VISIBLE_ITEMS + 1;
+        Keyboard_Class::KeysState keys = M5Cardputer.Keyboard.keysState();
+        if (keys.enter) {
+            if (!isSending) {
+                isSending = true; needsRedraw = true;
+                if (!isMotorCommand(currentCommand)) {
+                    sendCommand(commands[currentCommand].second, 5);
+                }
+            }
+            if (isMotorCommand(currentCommand) && millis() - lastSendTime > SEND_INTERVAL) {
+                sendCommand(commands[currentCommand].second, 5);
+                lastSendTime = millis();
+            }
+        } else {
+            if (isSending) {
+                isSending = false; needsRedraw = true;
+                if(isMotorCommand(currentCommand)) {
+                    sendCommand(CMD_STOP, 5);
+                }
+            }
         }
 
-        if (keys.fn && !keys.word.empty() && keys.word[0] == '`') {
+        if (needsRedraw) drawUI();
+    }
+
+    // Exit to launcher
+    if (M5Cardputer.Keyboard.isPressed()) {
+        Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+        if (status.fn && !status.word.empty() && status.word[0] == '`') {
             const esp_partition_t *launcher_partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
             if (launcher_partition != NULL) {
                 esp_ota_set_boot_partition(launcher_partition);
                 esp_restart();
             }
         }
-        drawUI();
     }
+}
+
+// --- Helper Functions ---
+bool connectToServer() {
+    if (myDevice == nullptr) return false;
+
+    pClient = BLEDevice::createClient();
+    pClient->setClientCallbacks(new MyClientCallback());
+    if (!pClient->connect(myDevice)) return false;
+
+    BLERemoteService* pRemoteService = pClient->getService(RICHMAT_SERVICE_UUID);
+    if (pRemoteService == nullptr) { pClient->disconnect(); return false; }
+
+    pCharacteristic = pRemoteService->getCharacteristic(RICHMAT_CHARACTERISTIC_UUID);
+    if (pCharacteristic == nullptr) { pClient->disconnect(); return false; }
+    
+    return true;
+}
+
+void sendCommand(const uint8_t* cmd, size_t len) {
+    if (currentAppState == STATE_CONNECTED && pCharacteristic != nullptr) {
+        pCharacteristic->writeValue((uint8_t*)cmd, len, false);
+    }
+}
+
+bool isMotorCommand(int commandIndex) {
+    String name = commands[commandIndex].first;
+    return (name.indexOf("Up") != -1 || name.indexOf("Down") != -1);
 }
 
