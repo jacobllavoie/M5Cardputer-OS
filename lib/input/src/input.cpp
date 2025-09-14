@@ -203,7 +203,7 @@ void handleMainMenuInput() {
             currentState = STATE_KEYBOARD_TEST;
         } 
         else if (strcmp(mainMenuItems[currentMainMenuSelection], "Meshtastic Chat") == 0) {
-            loadApp("meshtastic_chat.bin");
+            loadApp("meshtastic.bin");
         }
         else if (strcmp(mainMenuItems[currentMainMenuSelection], "Settings") == 0) { 
             currentState = STATE_SETTINGS_MENU; 

@@ -20,11 +20,12 @@ std::vector<String> messages;
 const int MAX_MESSAGES = 20;
 int messageScrollOffset = 0;
 String inputBuffer = "";
+unsigned long lastReconnectAttempt = 0;
 
 // --- Function Prototypes ---
 void drawUI();
 void callback(char* topic, byte* payload, unsigned int length);
-void reconnect();
+void try_reconnect();
 void addMessage(String message);
 
 // --- UI Drawing ---
@@ -69,51 +70,73 @@ void setup() {
     M5Cardputer.Display.setFont(availableFonts[currentFontSelection].font);
     M5Cardputer.Display.setTextSize(appTextSize);
     
+    // --- WiFi Connection using NVS credentials ---
     addMessage("Connecting to WiFi...");
     drawUI();
+    String ssid = settings_get_wifi_ssid();
+    String password = settings_get_wifi_password();
 
-    // WiFi should be connected by launcher, but we check
-    if (WiFi.status() != WL_CONNECTED) {
-        addMessage("WiFi not connected. Please connect via launcher.");
-        drawUI();
-        while(true) { M5Cardputer.update(); } // Halt
+    if (ssid.length() > 0) {
+        WiFi.begin(ssid.c_str(), password.c_str());
+        int retries = 0;
+        while (WiFi.status() != WL_CONNECTED && retries < 20) {
+            addMessage("Connecting... " + String(retries));
+            drawUI();
+            delay(500);
+            retries++;
+            M5Cardputer.update(); // Keep keyboard responsive
+        }
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        addMessage("WiFi Connected!");
+    } else {
+        addMessage("WiFi connection failed.");
     }
     
     addMessage("Setting up MQTT...");
     drawUI();
     client.setServer(MQTT_SERVER, MQTT_PORT);
     client.setCallback(callback);
-
-    reconnect();
 }
 
 void loop() {
     M5Cardputer.update();
-    if (!client.connected()) {
-        reconnect();
+
+    if (!client.connected() && WiFi.status() == WL_CONNECTED) {
+        // Try to reconnect every 5 seconds
+        if (millis() - lastReconnectAttempt > 5000) {
+            try_reconnect();
+        }
+    } else {
+        client.loop(); // Only process messages if connected
     }
-    client.loop();
 
     if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 
         if (!status.word.empty()) {
-            inputBuffer += status.word;
+            for (char c : status.word) {
+                inputBuffer += c;
+            }
         } else if (status.del && inputBuffer.length() > 0) {
             inputBuffer.remove(inputBuffer.length() - 1);
         } else if (status.enter && inputBuffer.length() > 0) {
-            // Publish message
-            StaticJsonDocument<256> doc;
-            doc["from"] = MQTT_NICKNAME;
-            doc["text"] = inputBuffer;
-            
-            char buffer[256];
-            serializeJson(doc, buffer);
-            
-            String topic = String(MQTT_TOPIC_PREFIX) + "/" + MQTT_NICKNAME;
-            client.publish(topic.c_str(), buffer);
-            
-            inputBuffer = "";
+            if (client.connected()) {
+                JsonDocument doc;
+                doc["from"] = MQTT_NICKNAME;
+                doc["text"] = inputBuffer;
+                
+                char buffer[256];
+                serializeJson(doc, buffer);
+                
+                String topic = String(MQTT_TOPIC_PREFIX) + "/" + MQTT_NICKNAME;
+                client.publish(topic.c_str(), buffer);
+                
+                inputBuffer = "";
+            } else {
+                addMessage("Not connected. Cannot send.");
+            }
         }
 
         // Scrolling message history
@@ -121,13 +144,14 @@ void loop() {
             if (messageScrollOffset > 0) messageScrollOffset--;
         }
         if (M5Cardputer.Keyboard.isKeyPressed('.')) { // Down
-            if (messageScrollOffset < (int)messages.size() - 1) messageScrollOffset++;
+            if (messageScrollOffset < (int)messages.size() - 8) messageScrollOffset++;
         }
 
         // Exit to launcher
         if (status.fn && !status.word.empty() && status.word[0] == '`') {
             const esp_partition_t *launcher_partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
             if (launcher_partition != NULL) {
+                pixel.clear(); pixel.show(); // Turn off LED
                 esp_ota_set_boot_partition(launcher_partition);
                 esp_restart();
             }
@@ -143,7 +167,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         message += (char)payload[i];
     }
     
-    StaticJsonDocument<256> doc;
+    JsonDocument doc;
     deserializeJson(doc, message);
     
     String from = doc["from"] | "unknown";
@@ -153,28 +177,26 @@ void callback(char* topic, byte* payload, unsigned int length) {
     drawUI();
 }
 
-void reconnect() {
-    while (!client.connected()) {
-        addMessage("Connecting to MQTT...");
-        drawUI();
-        String clientId = "M5Cardputer-";
-        clientId += String(random(0xffff), HEX);
-        if (client.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD)) {
-            addMessage("MQTT Connected!");
-            String topic = String(MQTT_TOPIC_PREFIX) + "/#";
-            client.subscribe(topic.c_str());
-        } else {
-            addMessage("MQTT failed, rc=" + String(client.state()));
-            addMessage("Retrying in 5 sec...");
-            drawUI();
-            delay(5000);
-        }
+void try_reconnect() {
+    lastReconnectAttempt = millis();
+    addMessage("Connecting to MQTT...");
+    drawUI();
+    String clientId = "M5Cardputer-";
+    clientId += String(random(0xffff), HEX);
+    if (client.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD)) {
+        addMessage("MQTT Connected!");
+        String topic = String(MQTT_TOPIC_PREFIX) + "/#";
+        client.subscribe(topic.c_str());
+    } else {
+        addMessage("MQTT failed, rc=" + String(client.state()));
     }
+    drawUI();
 }
 
 void addMessage(String message) {
-    messages.insert(messages.begin(), message);
-    if (messages.size() > MAX_MESSAGES) {
+    if (messages.size() >= MAX_MESSAGES) {
         messages.pop_back();
     }
+    messages.insert(messages.begin(), message);
 }
+
