@@ -116,17 +116,6 @@ void handleInput() {
 
     if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
         bool stateHandled = false;
-        #ifdef ENABLE_WEB_SERVER
-        if (currentState == STATE_WEB_SERVER_ACTIVE) {
-             Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-             if (status.enter) {
-                 stopWebServer();
-                 currentState = STATE_WIFI_SETTINGS_MENU;
-                 drawScreen();
-             }
-             stateHandled = true;
-        }
-        #endif
         #ifdef ENABLE_OTA
         if (currentState == STATE_OTA_MODE) {
              Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
@@ -377,16 +366,6 @@ void handleWifiSettingsInput() {
         const char* selected = wifiMenuItems[currentWifiSelection]; 
         if (strcmp(selected, "Status") == 0) showWifiStatus(); 
         else if (strcmp(selected, "Scan for Networks") == 0) scanWifiNetworks(); 
-        #ifdef ENABLE_WEB_SERVER
-        else if (strcmp(selected, "Web Server") == 0) { 
-            if (WiFi.status() == WL_CONNECTED) { 
-                currentState = STATE_WEB_SERVER_ACTIVE; 
-                startWebServer(); 
-            } else { 
-                displayMessage("WiFi is not connected."); 
-            } 
-        }
-        #endif
         else if (strcmp(selected, "Disconnect") == 0) disconnectWifi(); 
         else if (strcmp(selected, "Back") == 0) currentState = STATE_SETTINGS_MENU; 
     }

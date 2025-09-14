@@ -7,3 +7,5 @@ Thumbs.db
 
 # User specific
 **/secrets.h
+
+src/sniffers/

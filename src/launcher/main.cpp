@@ -132,6 +132,9 @@ void setup() {
         if (WiFi.status() == WL_CONNECTED) {
             wifiStatus = "connected";
             ip = WiFi.localIP().toString();
+            #ifdef ENABLE_WEB_SERVER
+            startWebServer();
+            #endif
         } else {
             wifiStatus = "error";
         }
@@ -163,12 +166,6 @@ void setup() {
 void loop() {
     M5Cardputer.update();
     handleHeartbeat();
-
-    #ifdef ENABLE_WEB_SERVER
-    if (currentState == STATE_WEB_SERVER_ACTIVE) {
-        handleWebServerClient();
-    }
-    #endif
 
     #ifdef ENABLE_OTA
     if (currentState == STATE_OTA_MODE) {

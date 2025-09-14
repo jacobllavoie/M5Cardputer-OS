@@ -48,7 +48,7 @@ const int numSdCardMenuItems = sizeof(sdCardMenuItems) / sizeof(sdCardMenuItems[
 int currentSdCardSelection = 0;
 #endif
 #ifdef ENABLE_WIFI
-const char* wifiMenuItems[] = { "Status", "Scan for Networks", "Web Server", "Disconnect", "Back" };
+const char* wifiMenuItems[] = { "Status", "Scan for Networks", "Disconnect", "Back" };
 const int numWifiMenuItems = sizeof(wifiMenuItems) / sizeof(wifiMenuItems[0]);
 int currentWifiSelection = 0;
 #endif
